@@ -4,10 +4,6 @@
              xmlns:vm="clr-namespace:ERechnung.App.ViewModels"
              Background="#1E1E1E">
     
-    <UserControl.DataContext>
-        <vm:KundenViewModel/>
-    </UserControl.DataContext>
-
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -27,6 +23,15 @@
         <DataGrid Grid.Row="1" ItemsSource="{Binding KundenListe}" AutoGenerateColumns="False" IsReadOnly="True"
                   CanUserAddRows="False" Background="#252526" Foreground="White" BorderBrush="#3E3E42" GridLinesVisibility="Horizontal"
                   RowBackground="#252526" AlternatingRowBackground="#2D2D2E">
+            <DataGrid.Resources>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#1E1E1E"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="BorderBrush" Value="#3E3E42"/>
+                    <Setter Property="Padding" Value="5,5"/>
+                    <Setter Property="FontSize" Value="14"/>
+                </Style>
+            </DataGrid.Resources>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
                 <DataGridTextColumn Header="Firma" Binding="{Binding Firmenname}" Width="*"/>
