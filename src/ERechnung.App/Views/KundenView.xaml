@@ -1,0 +1,39 @@
+<UserControl x:Class="ERechnung.App.Views.KundenView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:ERechnung.App.ViewModels"
+             Background="#1E1E1E">
+    
+    <UserControl.DataContext>
+        <vm:KundenViewModel/>
+    </UserControl.DataContext>
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBox Width="200" VerticalContentAlignment="Center" Background="#2D2D30" Foreground="White" BorderBrush="#3E3E42">
+                <TextBox.Text>
+                    <Binding Path="Suchbegriff" UpdateSourceTrigger="PropertyChanged"/>
+                </TextBox.Text>
+            </TextBox>
+            <Button Content="🔍 Suchen" Margin="5,0" Padding="10,5" Background="#007ACC" Foreground="White"/>
+            <Button Content="+ Neuer Kunde" Margin="10,0,0,0" Padding="10,5" Background="#0E7A0D" Foreground="White"/>
+        </StackPanel>
+
+        <DataGrid Grid.Row="1" ItemsSource="{Binding KundenListe}" AutoGenerateColumns="False" IsReadOnly="True"
+                  CanUserAddRows="False" Background="#252526" Foreground="White" BorderBrush="#3E3E42" GridLinesVisibility="Horizontal"
+                  RowBackground="#252526" AlternatingRowBackground="#2D2D2E">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
+                <DataGridTextColumn Header="Firma" Binding="{Binding Firmenname}" Width="*"/>
+                <DataGridTextColumn Header="Ansprechpartner" Binding="{Binding Ansprechpartner}" Width="*"/>
+                <DataGridTextColumn Header="E-Mail" Binding="{Binding Email}" Width="*"/>
+                <DataGridTextColumn Header="Ort" Binding="{Binding Ort}" Width="100"/>
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>

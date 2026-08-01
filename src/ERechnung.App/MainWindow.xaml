@@ -8,6 +8,8 @@
             <ColumnDefinition Width="200"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
+
+        <!-- Sidebar Navigation -->
         <Border Grid.Column="0" Background="#2D2D30" Padding="10">
             <StackPanel>
                 <TextBlock Text="E-Rechnung SD" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,20"/>
@@ -18,12 +20,8 @@
                 <Button Content="Einstellungen" Padding="10" Margin="0,5" Background="Transparent" Foreground="White" HorizontalContentAlignment="Left"/>
             </StackPanel>
         </Border>
-        <Grid Grid.Column="1" Background="#1E1E1E">
-            <TextBlock Text="Dashboard - Willkommen" 
-                       Foreground="White" 
-                       FontSize="20" 
-                       VerticalAlignment="Center" 
-                       HorizontalAlignment="Center"/>
-        </Grid>
+
+        <!-- Inhalt mit Frame fuer Navigation -->
+        <Frame Grid.Column="1" x:Name="MainFrame" NavigationUIVisibility="Hidden" Background="#1E1E1E"/>
     </Grid>
 </Window>
