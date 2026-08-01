@@ -1,0 +1,46 @@
+# C#
+*.dll
+*.exe
+*.pdb
+*.obj
+*.user
+*.cache
+
+# .NET / dotnet
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.suo
+*.userosscache
+*.sln.docstates
+
+# VS Code
+.vscode/
+
+# NuGet
+packages/
+
+# Test
+TestResults/
+
+# Database (lokale Kopien)
+*.db
+*.bak
+*.sqlite
+
+# Docs/Build
+_build/
+dist/
+publish/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.idea/
+*.swp
+*~
