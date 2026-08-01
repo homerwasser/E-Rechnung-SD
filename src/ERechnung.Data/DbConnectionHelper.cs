@@ -4,9 +4,6 @@ using Microsoft.Data.Sqlite;
 
 namespace ERechnung.Data;
 
-/// <summary>
-/// Statische Hilfsklasse fuer die Datenbankverbindung.
-/// </summary>
 public static class DbConnectionHelper
 {
     private static string _connectionString = string.Empty;
@@ -20,7 +17,7 @@ public static class DbConnectionHelper
     }
 
     public static string ConnectionString => _connectionString;
-    
+
     public static SqliteConnection GetConnection()
     {
         return new SqliteConnection(_connectionString);
