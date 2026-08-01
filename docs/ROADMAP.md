@@ -1,123 +1,140 @@
-# Meilensteine & Issues
+# ROADMAP – E-Rechnung SD
 
-## M1 – Projekt-Setup & Grundgerüst
+## Projekt-Übersicht
 
-**Ziel:** Repository ist angelegt, Projektstruktur steht, Build läuft, erste Tests.
+| Meilenstein | Issues | Status | Zieltermin |
+|-------------|--------|--------|------------|
+| M1: Projekt-Setup | 5 Issues | 🟢 Done | KW 31 |
+| M2: Datenbank & Kunden | 7 Issues | 🔵 In Progress | KW 32 |
+| M3: Rechnungserstellung | 7 Issues | ⏳ Waiting | KW 33-34 |
+| M4: PDF & E-Mail | 6 Issues | ⏳ Waiting | KW 35 |
+| M5: UBL/Factur-X | 5 Issues | ⏳ Waiting | KW 36-37 |
+| M6: Vorlagen & Settings | 7 Issues | ⏳ Waiting | KW 38 |
+| M7: Backup/Update | 7 Issues | ⏳ Waiting | KW 39 |
 
-| Issue-ID | Titel | Beschreibung | Aufwand (h) |
-|----------|-------|-------------|-------------|
-| ISSUE-1 | Repository auf GitHub erstellen | `E-Rechnung-SD` (private) auf GitHub einrichten. README.md mit Projektbeschreibung. | 0.5 |
-| ISSUE-2 | Solution-Grundgerüst erstellen | .NET 8 WPF Solution mit allen Projekten (App, Core, Data, XML, PDF). | 1 |
-| ISSUE-3 | CI/CD Pipeline einrichten | GitHub Actions für Build + Test + Publish auf GitHub. | 1.5 |
-| ISSUE-4 | Git-Branching-Strategie festlegen | `main` (Release), `develop` (Feature), `feature/*`. | 0.5 |
-| ISSUE-5 | Erstes "Hello World" der App | WPF MainWindow öffnet, zeigt "E-Rechnung SD v0.0.0". | 1 |
-| ISSUE-6 | Test-Projekt aufsetzen | xUnit + FluentAssertions für Unit-Tests. | 0.5 |
-
----
-
-## M2 – Datenbank & Kundenverwaltung
-
-**Ziel:** Benutzer kann Kunden anlegen, bearbeiten, löschen. Daten sind persistent.
-
-| Issue-ID | Titel | Beschreibung | Aufwand (h) |
-|----------|-------|-------------|-------------|
-| ISSUE-7 | SQLite-Integration | Dapper + SQLite als Datenzugriff. Verbindungspooling, Transaktionen. | 2 |
-| ISSUE-8 | Migrations-System | Automatisches Schema-Update (Migration 001). | 1.5 |
-| ISSUE-9 | Kunden-Repository | CRUD für tbl_Kunde (Insert, Update, Delete, Get). | 2 |
-| ISSUE-10 | Kunden-ViewModel | MVVM: Liste, Detail, Validierung, Suche. | 2 |
-| ISSUE-11 | Kunden-View (UI) | WPF Grid/Liste, Formular, Suchfeld, Dialoge. | 3 |
-| ISSUE-12 | Test: Kunden-Repo | Unit-Tests für Repository (Mock DB oder InMemory). | 1.5 |
+**Gesamtaufwand:** ~100h
 
 ---
 
-## M3 – Rechnungserstellung (Kern)
+## M1: Projekt-Setup (KW 31) – ✅ DONE
 
-**Ziel:** Benutzer kann eine Rechnung mit variablen Kostenzeilen erstellen.
-
-| Issue-ID | Titel | Beschreibung | Aufwand (h) |
-|----------|-------|-------------|-------------|
-| ISSUE-13 | Rechnung-Repository | CRUD für tbl_Rechnung + tbl_Rechnungsposition (Master/Detail). | 3 |
-| ISSUE-14 | Rechnungsformular (UI) | Eingabefeld: Rechnungsnummer, Datum, Anlass, Empfängerwahl. | 3 |
-| ISSUE-15 | Flexible Kostentabelle | Zeilen hinzufügen/löschen, Beschreibung/Menge/Preis/Steuer berechnen. | 4 |
-| ISSUE-16 | Automatische Rechnungsnr. | Auto-Inkrement: `2024-001`, `2024-002`… | 1 |
-| ISSUE-17 | Rechnung-Validierung | Pflichtfelder: Nr., Datum, mindestens 1 Position. | 1.5 |
-| ISSUE-18 | Test: Rechnungsservice | Berechnungstests, Validierungstests. | 2 |
+- [#5] SQLite-Integration (Dapper)
+- [#6] Migration-System
+- [#7] Kunden-Repository (CRUD)
+- [#8] Kunden-ViewModel (MVVM)
+- [#9] Kundenverwaltung UI
+- [#10] Test: Kunden-Repository
+- [#11] Firmenprofil: Mehrere Marken (Tanzschule SDA / Entertainer & Choreograph)
 
 ---
 
-## M4 – PDF-Generierung & E-Mail
+## M2: Datenbank & Kunden (KW 32) – 🔄 IN PROGRESS
 
-**Ziel:** Rechnung wird als PDF generiert, per Outlook verschickbar.
-
-| Issue-ID | Titel | Beschreibung | Aufwand (h) |
-|----------|-------|-------------|-------------|
-| ISSUE-19 | QuestPDF-Integration | Package hinzufügen, Basislayout mit Header/Footer. | 2 |
-| ISSUE-20 | PDF-Layout erstellen | Firmenheader, Adressdaten, Positionstabelle, Summenblock. | 4 |
-| ISSUE-21 | Rechnungsnr., Ort, Datum-Platzierung | Links im Header: Ereignis-Datum. Rechts: Rechnungs-Datum (über Nr.). | 2 |
-| ISSUE-22 | PDF-Speichern | Ausgabe als Datei, in DB verknüpfen, automatisch öffnen optional. | 1.5 |
-| ISSUE-23 | Outlook-Integration | `Process.Start("mailto:...")` mit Anhang. | 1.5 |
-| ISSUE-24 | Test: PDF-Generierung | Snapshot-Tests, Ausgabe vergleichen. | 1 |
+- [#12] Rechnung-Repository (Master/Detail)
+- [#13] Rechnungsformular UI
+- [#14] Flexible Kostentabelle (Zeilen +/−)
+- [#15] Automatische Rechnungsnr.
+- [#16] Rechnungsstatus-System
+- [#17] Rechnung-Validierung
+- [#18] Test: Rechnung-Service
+- [#35] Suchfilter nach Status
 
 ---
 
-## M5 – E-Rechnung: UBL 2.2 & Factur-X
+## M3: Rechnungserstellung (KW 33-34) – ⏳ WAITING
 
-**Ziel:** Rechnungen sind EN 16931-konform (UBL-XML + Factur-X-PDF).
-
-| Issue-ID | Titel | Beschreibung | Aufwand (h) |
-|----------|-------|-------------|-------------|
-| ISSUE-25 | UBL 2.2 Generator | Erzeuge gültiges Invoice.xml aus Rechnungsdaten. | 5 |
-| ISSUE-26 | UBL-Schema-Validierung | XSD-Prüfung gegen EN 16931 BasicWL Profil. | 2 |
-| ISSUE-27 | UBL-Parser (Import) | Lese UBL-XML → rekonstruiere Rechnung. | 4 |
-| ISSUE-28 | Factur-X Embedding | UBL als PDF/A-3 Annex (Zugferd-Format, analog). | 3 |
-| ISSUE-29 | Compliance-Tests | Validate gegen XRechnung/EN-16931 Testfälle. | 2 |
+- [#19] QuestPDF-Integration
+- [#20] PDF-Layout: Kopfdaten, Positionstabelle, Summen
+- [#21] Rechnungsdaten-Platzierung (links Datum, rechts Datum)
+- [#22] PDF-Speichern & Verknüpfung
+- [#23] Outlook-Integration (mailto + Anhang)
+- [#24] Test: PDF-Generierung
 
 ---
 
-## M6 – Vorlagen & Einstellungen
+## M4: PDF & E-Mail (KW 35) – ⏳ WAITING
 
-**Ziel:** Benutzer kann eigene Vorlagen verwalten, Firmendaten eingeben.
-
-| Issue-ID | Titel | Beschreibung | Aufwand (h) |
-|----------|-------|-------------|-------------|
-| ISSUE-30 | Einstellungsdialog | Firmenname, Adresse, IBAN, USt-IdNr. in DB speichern. | 2 |
-| ISSUE-31 | Vorlagen-Manager (UI) | Liste, Erstellen, Bearbeiten, Löschen. | 3 |
-| ISSUE-32 | DOCX-Import für Vorlagen | Import alter DOC-Rechnung als PDF-Basislayout. | 4 |
-| ISSUE-33 | Platzhalter-System | `{Firma}`, `{Datum}`, `{Rechnungsnummer}`, `{Position}`… in Vorlagen. | 3 |
-| ISSUE-34 | Test: Vorlagen | Rendering-Tests mit verschiedenen Daten. | 1.5 |
+*(Siehe M3)*
 
 ---
 
-## M7 – Backup, Update, Fertigstellung
+## M5: UBL/Factur-X (KW 36-37) – ⏳ WAITING
 
-**Ziel:** Robustes System mit Backup, Update, polierte UX.
-
-| Issue-ID | Titel | Beschreibung | Aufwand (h) |
-|----------|-------|-------------|-------------|
-| ISSUE-35 | Backup-Service | Automatisches tägliches Backup + manuelles Backup. | 2 |
-| ISSUE-36 | Restore-Dialog | Backup auswählen → DB prüfen → ersetzen → Restart. | 2 |
-| ISSUE-37 | Update-Service | Prüfe GitHub API auf neueste Version. | 2 |
-| ISSUE-38 | Update-Installer | Herunterladen, alte .exe sichern, neue .exe ersetzen, Restart. | 2.5 |
-| ISSUE-39 | Self-Contained Publish | SingleFile, win-x64, <100MB. | 1 |
-| ISSUE-40 | UX-Polishing | Icons, Splash-Screen, About-Dialog, Spracheinstellung. | 3 |
-| ISSUE-41 | README.md finalisieren | Setup, Screenshot, Features, Lizenz. | 1 |
-| ISSUE-42 | CHANGELOG.md | Alle Changes dokumentieren. | 0.5 |
-| ISSUE-43 | Erstes Release (v0.1.0-alpha) | Tag + GitHub Release mit Download-Link. | 0.5 |
+- [#25] UBL 2.2 Generator (EN 16931 konform)
+- [#26] UBL-Schema-Validierung (XSD)
+- [#27] UBL-Parser (Import aus XML)
+- [#28] Factur-X Embedding (PDF/A mit UBL)
+- [#29] Compliance-Tests (EN 16931)
 
 ---
 
-## Zeitplanung
+## M6: Vorlagen & Settings (KW 38) – ⏳ WAITING
 
-| Meilenstein | Issues | Gesamtaufwand | Zieltermin |
-|-------------|--------|--------------|------------|
-| M1: Setup | 1–6 | ~5h | Woche 1 |
-| M2: Kunden | 7–12 | ~12h | Woche 2 |
-| M3: Rechnung | 13–18 | ~15h | Woche 3–4 |
-| M4: PDF/Mail | 19–24 | ~16h | Woche 5 |
-| M5: UBL/Factur-X | 25–29 | ~16h | Woche 6–7 |
-| M6: Vorlagen | 30–34 | ~14h | Woche 8 |
-| M7: Fertig | 35–43 | ~17h | Woche 9 |
+- [#30] Firmeneinstellungen (IBAN, USt-IdNr, Logo)
+- [#31] Vorlagen-Manager (UI)
+- [#32] DOCX-Import: Alte Rechnungen als Vorlage
+- [#33] Platzhalter-System
+- [#34] Dashboard-Analyse: Forderungen über Zeit
+- [#42] README.md finalisieren
+- [#43] Erstes Release (v0.1.0-alpha)
 
-**Gesamtgeschätzter Aufwand: ~95 Stunden**
+---
 
-> *Hinweis: Diese Schätzung enthält nur reine Implementierungszeit. Review, Debugging und Anpassungen kommen hinzu.*
+## M7: Backup/Update (KW 39) – ⏳ WAITING
+
+- [#35] Backup-Service (auto + manuell)
+- [#36] Backup wiederherstellen
+- [#37] Update-Service (GitHub API)
+- [#38] Self-Contained Publish (SingleFile)
+- [#41] UX-Polishing: Icons, Splashscreen, About-Dialog
+- [#40] Dashboard: Forderungsanalyse (Diagramm)
+
+---
+
+## Labels
+
+| Kategorie | Color |
+|-----------|-------|
+| enhancement | 🔵 Blue |
+| bug | 🔴 Red |
+| testing | 🟡 Yellow |
+| pdf/export | 🩷 Pink |
+| email | 💙 Light Blue |
+| xml/ubl | 🧡 Orange |
+| database | 🤎 Brown |
+| backup/restore | ⚫ Gray |
+| ui/ux | 💜 Purple |
+| documentation | 🟦 Dark Blue |
+| priority/high | 🔴 Red |
+| priority/medium | 🟠 Orange |
+| priority/low | 🟢 Green |
+
+---
+
+## Branching-Strategie
+
+```
+main          ← Produktionsbereit, immer stabil
+release/vX.X.X ← Vorbereiten für Releases
+develop       ← Hauptentwicklung
+feature/*     ← Neue Funktionen (kurzlebig)
+bugfix/*      ← Bugfixes (kurzlebig)
+hotfix/*      ← Kritische Fixes (direkt auf main)
+```
+
+## Status-Semantik
+
+- `erstellt` – Rechnung angelegt, noch nicht versendet
+- `versendet` – Per E-Mail abgeschickt
+- `offen` – Versendet, Zahlung noch offen
+- `bezahlt` – Zahlung erhalten
+- `inklarung` – In Diskussion / Klärungsbedarf
+- `storniert` – Storniert, Gutschrift möglich
+
+## Datenbank
+
+Siehe `DATABASE_SCHEMA.md`
+
+## UI-Mockups
+
+Siehe `UI-MOCKUPS.md`
