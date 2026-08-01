@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ERechnung.Core\ERechnung.Core.csproj" />
+    <ProjectReference Include="..\ERechnung.Data\ERechnung.Data.csproj" />
+    <ProjectReference Include="..\ERechnung.XML\ERechnung.XML.csproj" />
+    <ProjectReference Include="..\ERechnung.PDF\ERechnung.PDF.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+</Project>
