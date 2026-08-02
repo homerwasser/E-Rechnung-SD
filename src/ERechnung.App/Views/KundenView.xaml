@@ -103,7 +103,7 @@
                 <DataGrid.Resources>
                     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#007ACC"/>
                     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
-                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#365F86"/>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#007ACC"/>
                     <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
 
                     <Style TargetType="DataGridColumnHeader">
@@ -120,6 +120,7 @@
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter Property="Background" Value="#007ACC"/>
                                 <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
@@ -130,8 +131,11 @@
                         <Setter Property="Padding" Value="5"/>
                         <Style.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Background" Value="#007ACC"/>
                                 <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderBrush" Value="#8AD0FF"/>
+                                <Setter Property="BorderThickness" Value="0,1"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
