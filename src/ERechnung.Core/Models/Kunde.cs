@@ -2,9 +2,6 @@ using System;
 
 namespace ERechnung.Core.Models;
 
-/// <summary>
-/// Kunde / Empfänger der Rechnung
-/// </summary>
 public class Kunde
 {
     public int? Id { get; set; }
@@ -17,5 +14,6 @@ public class Kunde
     public string Email { get; set; } = string.Empty;
     public string Telefon { get; set; } = string.Empty;
     public string? UstIdNr { get; set; }
+    public string Bemerkung { get; set; } = string.Empty;
     public DateTime ErstelltAm { get; set; } = DateTime.UtcNow;
 }

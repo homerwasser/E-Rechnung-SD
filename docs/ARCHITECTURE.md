@@ -19,7 +19,7 @@
 | Updaten            | Eigenes Update-Service        | Prüft GitHub Release-API, lädt neue .exe herunter  |
 | Build & Test       | dotnet CLI + xUnit            | Standard .NET-Ökosystem                             |
 | IDE                | VS Code + C# Dev Kit          | Kostenlos, reicht für komplette Entwicklung         |
-| Versionskontrolle  | Git + GitHub                  | Private Repository, CI/CD                           |
+| Versionskontrolle  | Git + GitHub                  | Öffentliches Repository, CI/CD; keine Echtdaten     |
 
 ## Komponentenübersicht
 

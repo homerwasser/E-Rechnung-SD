@@ -3,44 +3,43 @@
 **Elektronische Rechnungen nach dem deutschen Standard (EN 16931) – erstellen, verwalten, verschicken.**
 
 ![Status](https://img.shields.io/badge/Status-Development-blue)
-![License](https://img.shields.io/badge/License-Private-red)
+![License](https://img.shields.io/badge/License-All%20rights%20reserved-red)
 ![Platform](https://img.shields.io/badge/Plattform-Windows%2010%2F11-lightgrey)
 
 ---
 
 ## Was ist das?
 
-Eine Desktop-Anwendung für Windows, mit der du:
+Eine Windows-Desktop-Anwendung zur Erstellung und Verwaltung elektronischer Rechnungen.
 
-- **Rechnungen erzeugen** kannst – als PDF, als UBL 2.2-XML und als Factur-X (hybrid PDF mit eingebettetem XML)
-- **Rechnungen importieren** kannst – aus UBL/Factur-X zurück in die Datenbank
-- **Kunden verwalten** kannst – wiederkehrende Empfänger in einem Kundenstamm
-- **Vorlagen nutzen** kannst – verschiedene Rechnungstypen (Tagespauschalen, Projekte, etc.)
-- **Rechnungen per E-Mail** verschicken kannst – direkt aus der App heraus via Outlook
-- **Backups erstellen** kannst – automatische und manuelle Sicherung deiner Daten
-- **Automatisch aktualisieren** kannst – das Programm überprüft selbständig nach neuen Versionen
+### Bereits umgesetzt
+
+- WPF-Grundanwendung für Windows 10/11
+- lokale SQLite-Datenbank außerhalb des Programmordners
+- versionierte Datenbankmigrationen
+- Kundenverwaltung mit Suche und CRUD-Funktionen
+- automatisierte Build-, Unit- und Integrationstests
+
+### Geplant
+
+- Rechnungserstellung mit flexiblen Kostenpositionen
+- PDF-Ausgabe
+- EN-16931-konformer XML-Export und -Import
+- Factur-X/ZUGFeRD und XRechnung
+- Outlook-Integration
+- Backup, Wiederherstellung und automatische Updates
 
 ---
 
-## Schnellstart (Benutzer)
+## Schnellstart
 
-### Installation
+Aktuell existiert noch kein Endbenutzer-Release. Entwickler können die Anwendung so starten:
 
-1. Gehe zu [Releases](https://github.com/homerwasser/E-Rechnung-SD/releases)
-2. Lade die neueste `ERechnung.exe` herunter
-3. Doppelklick auf die `.exe` – fertig!
+```powershell
+dotnet run --project src/ERechnung.App
+```
 
-**Kein Installer. Keine Installation. Kein Admin-Recht.**
-
-### Erste Rechnung erstellen
-
-1. App starten
-2. **„Mein Unternehmen"** in den Einstellungen eintragen
-3. **„Neue Rechnung"** klicken
-4. Kunde auswählen oder neuen anlegen
-5. Kostenzeilen eingeben
-6. **„Speichern"** → PDF wird generiert
-7. **„Senden"** → Outlook öffnet sich mit dem PDF im Anhang
+Eine installationsfreie, selbstenthaltende Windows-Version wird in einem späteren Release bereitgestellt.
 
 ---
 
@@ -76,10 +75,10 @@ Eine Desktop-Anwendung für Windows, mit der du:
 dotnet restore
 
 # Bauen
-dotnet build
+dotnet build E-Rechnung-SD.sln --configuration Release
 
 # Tests ausführen
-dotnet test
+dotnet test E-Rechnung-SD.sln --configuration Release --no-build
 
 # Veröffentlichen (Self-Contained, SingleFile)
 dotnet publish -c Release -r win-x64 --self-contained
@@ -103,8 +102,10 @@ Siehe [CHANGELOG.md](CHANGELOG.md)
 
 ---
 
-## Lizenz
+## Datenschutz und Lizenz
 
-Private Software. Nicht für die Weitergabe gedacht.
+Das Repository ist öffentlich, enthält aber keine Freigabe zur Weiterverwendung. Sofern keine separate Lizenzdatei ergänzt wird, bleiben alle Rechte vorbehalten.
 
-© 2024 Homer Wasser
+Reale Rechnungen, Kundendaten und Firmenlogos dürfen nicht committed werden. Siehe [Datenschutz bei der Entwicklung](docs/PRIVACY.md).
+
+© 2026 Homer Wasser

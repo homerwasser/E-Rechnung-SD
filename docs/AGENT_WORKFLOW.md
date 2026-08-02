@@ -1,39 +1,92 @@
-# KI-Agent Workflows
+# Verbindlicher KI-Entwicklungsworkflow
 
-Dieses Dokument definiert den verbindlichen Prozess für die KI-gestützte Entwicklung im Projekt `E-Rechnung-SD`.
+Dieses Dokument gilt für jede KI-gestützte Änderung an `E-Rechnung-SD`.
+Ein Issue oder Meilenstein darf erst als abgeschlossen gelten, wenn alle nachfolgenden Schritte erfüllt sind.
 
-## Regelwerk für KI-Agenten
+## 1. Vor Beginn
 
-Bei jeder Arbeitseinheit (Issue oder Milestone) **MUSS** folgender Ablauf eingehalten werden:
+1. Anforderungen und Akzeptanzkriterien des GitHub-Issues lesen.
+2. Abhängigkeiten und betroffene Dateien bestimmen.
+3. Einen eigenen Branch verwenden (`feature/*`, `fix/*`, `docs/*`).
+4. `git status` prüfen und fremde oder nicht zugehörige Änderungen nicht überschreiben.
+5. Niemals Zugangstoken, Passwörter, echte Rechnungen, Kundendaten oder Firmenlogos committen.
 
-### 1. Implementierung
-- Code schreiben, Dateien erstellen/bearbeiten.
-- Architektur-Richtlinien (`docs/ARCHITECTURE.md`) beachten.
+## 2. Implementierung
 
-### 2. Test-Phase (PFLICHT)
-Bevor ein Meilenstein als "Done" gilt:
-1.  **Build:** `dotnet build E-Rechnung-SD.sln --configuration Release` MUSS fehlerfrei durchlaufen (Exit Code 0).
-2.  **Test:** `dotnet test --configuration Release` MUSS alle Tests bestehen.
-    -   Sind noch keine Tests vorhanden, MUSS der KI-Agent mindestens einen Dummy-Test oder eine grundlegende Unit-Test-Klasse schreiben, um die Pipeline zu validieren.
+- Änderungen klein, nachvollziehbar und passend zur Architektur halten.
+- Ursache statt Symptom beheben.
+- Keine funktionslosen Schaltflächen als fertige Funktion ausgeben.
+- Keine Platzhalter oder TODOs als abgeschlossene Akzeptanzkriterien werten.
+- Datenbankänderungen ausschließlich über nummerierte, transaktionale Migrationen ausführen.
+- Personen- und Rechnungsdaten außerhalb des Repositorys speichern.
 
-### 3. Status-Report (Output)
-Nach erfolgreicher Testphase MUSS dem Benutzer folgende Information gegeben werden:
-1.  **Milestone-Übersicht:** Kurze Zusammenfassung des Erledigten.
-2.  **Abfrage:** "Willst du zum nächsten Meilenstein wechseln?"
+## 3. Tests pro wichtigem Issue
 
-## Status-Report Format
+Für Geschäftslogik, Datenbankzugriff und Fehlerkorrekturen müssen passende Tests ergänzt werden.
+Leere Tests und Dummy-Tests sind nicht zulässig.
+
+Mindestens ausführen:
+
+```powershell
+dotnet build E-Rechnung-SD.sln --configuration Release
+dotnet test E-Rechnung-SD.sln --configuration Release --no-build --verbosity normal
+dotnet list E-Rechnung-SD.sln package --vulnerable --include-transitive
+```
+
+Je nach Änderung zusätzlich:
+
+- Datenbank: Integrationstest mit temporärer SQLite-Datei
+- Migration: Erstlauf und wiederholter Lauf (Idempotenz)
+- UI: manueller Smoke-Test der betroffenen Bedienabläufe
+- Release: Self-Contained-Publish auf `win-x64`
+
+## 4. Meilenstein-Abnahme
+
+Ein Meilenstein ist nur abgeschlossen, wenn:
+
+- alle zugeordneten Issues ihre Akzeptanzkriterien erfüllen,
+- Build und alle automatisierten Tests erfolgreich sind,
+- wichtige UI-Abläufe manuell geprüft wurden,
+- keine unbeabsichtigten Dateien im Git-Arbeitsbaum liegen,
+- die Änderungen committed und gepusht sind,
+- die GitHub-CI erfolgreich ist,
+- die zugehörigen GitHub-Issues geschlossen sind,
+- der Benutzer die Meilenstein-Abnahme bestätigt hat.
+
+## 5. Pflichtbericht an den Benutzer
 
 ```markdown
-✅ MILESTONE [X]: [NAME] – ABGESCHLOSSEN!
+## Meilenstein Mx: Name
 
-| Issue | Titel | Status |
-|-------|-------|--------|
-| #XY   | Name  | ✅ Done |
+Status: Bereit zur Abnahme / Abgeschlossen / Blockiert
 
-🧪 TEST-Ergebnis:
-- Build: 0 Fehler, 0 Warnungen.
-- Tests: Alle Bestanden.
+### Erledigt
+- Issue und Ergebnis
 
-🚀 NÄCHSTE SCHRITTE:
-Soll ich mit [MILESTONE X+1] fortfahren? (Befehl: LOS)
+### Automatische Validierung
+- Build-Befehl und Ergebnis
+- Test-Befehl und Anzahl der Tests
+- GitHub-CI-Status
+
+### Manueller Test
+1. Programm starten mit: `dotnet run --project src/ERechnung.App`
+2. Konkrete Bedienabläufe testen
+3. Erwartetes Ergebnis nennen
+
+### Offene Punkte
+- verbleibende Arbeiten oder Risiken
+
+### Nächster Schritt
+- erst nach Benutzerfreigabe den nächsten Meilenstein starten
 ```
+
+## 6. GitHub und Zugangsdaten
+
+Für GitHub-Automatisierung ausschließlich die lokale Anmeldung verwenden:
+
+```powershell
+gh auth login
+gh auth status
+```
+
+Zugangstoken dürfen niemals in Chatnachrichten, Befehlen, Quellcode, Dokumentation oder Git-Historie erscheinen.
