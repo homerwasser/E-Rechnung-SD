@@ -8,8 +8,8 @@ GitHub ist die maßgebliche Quelle für Issues und Meilensteine:
 | Meilenstein | Inhalt | Status |
 |---|---|---|
 | M1 | Projekt-Setup und Grundgerüst | Implementiert; GitHub-Abschluss noch zu bereinigen |
-| M2 | Datenbank und Kundenverwaltung | In Umsetzung / Abnahme |
-| M3 | Rechnungserstellung (Kern) | Wartet auf M2-Abnahme |
+| M2 | Datenbank und Kundenverwaltung | Abgeschlossen und abgenommen am 02.08.2026 |
+| M3 | Rechnungserstellung (Kern) | Bereit zum Start |
 | M4 | PDF-Generierung und E-Mail | Geplant |
 | M5 | E-Rechnung: EN 16931, UBL/XRechnung und Factur-X/ZUGFeRD | Geplant |
 | M6 | Vorlagen und Einstellungen | Geplant |
@@ -31,6 +31,10 @@ GitHub ist die maßgebliche Quelle für Issues und Meilensteine:
 - #9 Kunden-ViewModel mit Suche und Validierung
 - #10 Kundenverwaltung mit Liste und Formular
 - #11 Integrations- und Repository-Tests
+- #37 Startfehler durch XAML-Ressource
+- #38 Auswahlkontrast im dunklen Farbschema
+
+**Abnahme:** Build, 19 automatisierte Tests, Start-Smoke-Test, Paketprüfung, GitHub-CI und manueller Bedienungstest erfolgreich.
 
 ### M2-Abnahmekriterien
 
@@ -44,7 +48,7 @@ GitHub ist die maßgebliche Quelle für Issues und Meilensteine:
 
 ## M3 – Rechnungserstellung
 
-Start erst nach bestätigter M2-Abnahme. Geplant sind insbesondere:
+M2 ist bestätigt. M3 kann nach einem eigenen Planungs- und Issue-Abgleich beginnen. Geplant sind insbesondere:
 
 - Rechnung und Positionen transaktional speichern
 - Firmenprofil und Kunde auswählen
