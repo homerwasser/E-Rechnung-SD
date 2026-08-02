@@ -37,7 +37,8 @@ Je nach Änderung zusätzlich:
 
 - Datenbank: Integrationstest mit temporärer SQLite-Datei
 - Migration: Erstlauf und wiederholter Lauf (Idempotenz)
-- UI: manueller Smoke-Test der betroffenen Bedienabläufe
+- UI-Start: `powershell -ExecutionPolicy Bypass -File scripts/Test-AppStartup.ps1`
+- UI-Bedienung: manueller Smoke-Test der betroffenen Abläufe
 - Release: Self-Contained-Publish auf `win-x64`
 
 ## 4. Meilenstein-Abnahme

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Automatisierter WPF-Start-Smoke-Test
 - Versioniertes und transaktionales SQLite-Migrationssystem
 - Vollständige Kundenverwaltung mit Suche, Anlegen, Bearbeiten und Löschen
 - Validierung für Firmenname, E-Mail, Land und Postleitzahl
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test- und SQLite-Abhängigkeiten auf sichere Patchstände aktualisiert
 
 ### Fixed
+- Startfehler durch zu spät deklarierte XAML-Ressource
 - Doppeltes Öffnen des Hauptfensters beim Programmstart
 - Nicht lesbare Tabellenüberschriften im dunklen Farbschema
 - Funktionslose Kunden-Schaltflächen
