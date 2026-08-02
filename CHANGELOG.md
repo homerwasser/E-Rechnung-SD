@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test- und SQLite-Abhängigkeiten auf sichere Patchstände aktualisiert
 
 ### Fixed
+- Unlesbare aktive und inaktive Kundenauswahl im dunklen Farbschema
 - Startfehler durch zu spät deklarierte XAML-Ressource
 - Doppeltes Öffnen des Hauptfensters beim Programmstart
 - Nicht lesbare Tabellenüberschriften im dunklen Farbschema

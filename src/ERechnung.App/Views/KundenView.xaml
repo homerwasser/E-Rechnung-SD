@@ -101,6 +101,11 @@
                       RowBackground="#252526"
                       AlternatingRowBackground="#2D2D2E">
                 <DataGrid.Resources>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#007ACC"/>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#365F86"/>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="White"/>
+
                     <Style TargetType="DataGridColumnHeader">
                         <Setter Property="Background" Value="#171717"/>
                         <Setter Property="Foreground" Value="White"/>
@@ -109,10 +114,26 @@
                         <Setter Property="FontSize" Value="13"/>
                         <Setter Property="FontWeight" Value="SemiBold"/>
                     </Style>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Foreground" Value="White"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#007ACC"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
                     <Style TargetType="DataGridCell">
+                        <Setter Property="Background" Value="Transparent"/>
                         <Setter Property="Foreground" Value="White"/>
                         <Setter Property="BorderThickness" Value="0"/>
                         <Setter Property="Padding" Value="5"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="Transparent"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                        </Style.Triggers>
                     </Style>
                 </DataGrid.Resources>
                 <DataGrid.Columns>
