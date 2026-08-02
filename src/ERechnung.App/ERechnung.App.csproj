@@ -7,6 +7,10 @@
     <ProjectReference Include="..\ERechnung.PDF\ERechnung.PDF.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>

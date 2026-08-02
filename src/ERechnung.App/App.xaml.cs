@@ -1,39 +1,40 @@
 ﻿using System;
-using System.Threading.Tasks;
 using System.Windows;
+using ERechnung.App.Services;
+using ERechnung.App.ViewModels;
 using ERechnung.Data;
 using ERechnung.Data.Migrations;
 using ERechnung.Data.Repositories;
-using ERechnung.Core.Services;
-using ERechnung.Core.Models;
 
 namespace ERechnung.App;
 
 public partial class App : Application
 {
-    public static IRepository<Kunde> KundeRepo { get; private set; } = null!;
-
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
         try
         {
-            // 1. DB-Pfad initialisieren
             DbConnectionHelper.Initialize();
+            await DatabaseMigrator.MigrateAsync(DbConnectionHelper.ConnectionString);
 
-            // 2. Tabellen erstellen (Migration)
-            await InitialMigration.AusfuehrenAsync(DbConnectionHelper.ConnectionString);
+            var kundeRepository = new KundeRepository(DbConnectionHelper.ConnectionString);
+            var kundenViewModel = new KundenViewModel(kundeRepository, new MessageBoxDialogService());
+            await kundenViewModel.InitialisierenAsync();
 
-            // 3. Repository fuer globale Nutzung bereitlegen
-            KundeRepo = new KundeRepository(DbConnectionHelper.ConnectionString);
-
-            // 4. Hauptfenster oeffnen
-            var mainWindow = new MainWindow();
+            var mainWindow = new MainWindow(kundenViewModel);
+            MainWindow = mainWindow;
             mainWindow.Show();
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Fehler beim Start:\n{ex.Message}", "Fehler", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(
+                $"Die Anwendung konnte nicht gestartet werden.\n\n{ex.Message}\n\nDatenbank: {DbConnectionHelper.DatabasePath}",
+                "Startfehler",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(-1);
         }
     }
 }

@@ -8,18 +8,36 @@ public static class DbConnectionHelper
 {
     private static string _connectionString = string.Empty;
 
-    public static void Initialize()
+    public static string ConnectionString => !string.IsNullOrWhiteSpace(_connectionString)
+        ? _connectionString
+        : throw new InvalidOperationException("Die Datenbankverbindung wurde noch nicht initialisiert.");
+
+    public static string DatabasePath { get; private set; } = string.Empty;
+
+    public static void Initialize(string? databasePath = null)
     {
-        var basePath = Environment.CurrentDirectory;
-        var dataDir = Path.Combine(basePath, "data");
-        Directory.CreateDirectory(dataDir);
-        _connectionString = $"Data Source={Path.Combine(dataDir, "erechnung.db")}";
+        DatabasePath = Path.GetFullPath(databasePath ?? GetDefaultDatabasePath());
+
+        var dataDirectory = Path.GetDirectoryName(DatabasePath)
+            ?? throw new InvalidOperationException("Der Datenbankordner konnte nicht bestimmt werden.");
+
+        Directory.CreateDirectory(dataDirectory);
+
+        _connectionString = new SqliteConnectionStringBuilder
+        {
+            DataSource = DatabasePath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Cache = SqliteCacheMode.Shared,
+            Pooling = true,
+            ForeignKeys = true
+        }.ToString();
     }
 
-    public static string ConnectionString => _connectionString;
-
-    public static SqliteConnection GetConnection()
+    public static string GetDefaultDatabasePath()
     {
-        return new SqliteConnection(_connectionString);
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return Path.Combine(localAppData, "ERechnung-SD", "data", "erechnung.db");
     }
+
+    public static SqliteConnection GetConnection() => new(ConnectionString);
 }

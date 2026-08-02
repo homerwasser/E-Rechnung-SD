@@ -30,6 +30,10 @@ TestResults/
 *.bak
 *.sqlite
 
+# Vertrauliche lokale Eingabedaten
+local-input/
+private/
+
 # Docs/Build
 _build/
 dist/

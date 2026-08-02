@@ -1,7 +1,7 @@
 # GitHub-Repository – E-Rechnung SD
 
 **URL:** `https://github.com/homerwasser/E-Rechnung-SD`
-**Typ:** Private Repository
+**Typ:** Öffentliches Repository ohne Echtdaten
 
 ## Repository-Einrichtung
 
@@ -10,8 +10,9 @@
 ```bash
 # Auf GitHub.com erstellen:
 # - Name: E-Rechnung-SD
-# - Visibility: Private
-# - Initialisierung: Leer (kein README, keine .gitignore)
+# - Visibility: Public
+# - Keine echten Rechnungen, Kundendaten oder Firmenlogos committen
+# - Datenschutzregeln: docs/PRIVACY.md
 ```
 
 ### 2. Lokaler Start

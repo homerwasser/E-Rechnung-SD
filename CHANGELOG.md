@@ -8,13 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Erste Projekt-Struktur (docs/ARCHITECTURE.md, docs/USE_CASES.md, docs/ROADMAP.md, docs/UI-MOCKUPS.md, docs/DATABASE_SCHEMA.md)
-- README.md mit Features und Schnellstart
-- GITHUB_PLAN.md mit Repository-Setup
-- Changelog-Template
+- Automatisierter WPF-Start-Smoke-Test
+- Versioniertes und transaktionales SQLite-Migrationssystem
+- Vollständige Kundenverwaltung mit Suche, Anlegen, Bearbeiten und Löschen
+- Validierung für Firmenname, E-Mail, Land und Postleitzahl
+- Unit- und SQLite-Integrationstests für M2
+- Datenschutzregeln für echte Rechnungen und lokale Vorlagendaten
 
-### Next Steps
-- [ ] Repository auf GitHub erstellen
-- [ ] Lösungsskelett generieren (dotnet new sln + proj)
-- [ ] CI/CD Pipeline einrichten
-- [ ] Milestone 1 (Setup) starten
+### Changed
+- Datenbank nach `%LOCALAPPDATA%\ERechnung-SD\data\` verschoben
+- Kunden-Repository liefert erzeugte IDs zurück und prüft Schreiboperationen
+- Roadmap und KI-Arbeitsablauf an verbindliche Abnahmekriterien angepasst
+- Test- und SQLite-Abhängigkeiten auf sichere Patchstände aktualisiert
+
+### Fixed
+- Unlesbare aktive und inaktive Kundenauswahl im dunklen Farbschema
+- Startfehler durch zu spät deklarierte XAML-Ressource
+- Doppeltes Öffnen des Hauptfensters beim Programmstart
+- Nicht lesbare Tabellenüberschriften im dunklen Farbschema
+- Funktionslose Kunden-Schaltflächen
+
+### Security
+- Vertrauliche lokale Eingabeordner werden von Git ignoriert
+- Bekannte transitive Paket-Schwachstellen entfernt
