@@ -9,7 +9,7 @@ GitHub ist die maßgebliche Quelle für Issues und Meilensteine:
 |---|---|---|
 | M1 | Projekt-Setup und Grundgerüst | Implementiert; GitHub-Abschluss noch zu bereinigen |
 | M2 | Datenbank und Kundenverwaltung | Abgeschlossen und abgenommen am 02.08.2026 |
-| M3 | Rechnungserstellung (Kern) | Bereit zum Start |
+| M3 | Rechnungserstellung (Kern) | Bereit zur Integration; manueller Test am 03.08.2026 erfolgreich |
 | M4 | PDF-Generierung und E-Mail | Geplant |
 | M5 | E-Rechnung: EN 16931, UBL/XRechnung und Factur-X/ZUGFeRD | Geplant |
 | M6 | Vorlagen und Einstellungen | Geplant |
@@ -48,14 +48,46 @@ GitHub ist die maßgebliche Quelle für Issues und Meilensteine:
 
 ## M3 – Rechnungserstellung
 
-M2 ist bestätigt. M3 kann nach einem eigenen Planungs- und Issue-Abgleich beginnen. Geplant sind insbesondere:
+Zugeordnete GitHub-Issues:
 
-- Rechnung und Positionen transaktional speichern
-- Firmenprofil und Kunde auswählen
-- flexible Kostenpositionen
-- automatische Rechnungsnummer
-- Statusmodell und Statusfilter
-- Berechnung und Validierung testen
+- #12 Rechnung-Repository (Master/Detail)
+- #13 Automatische Rechnungsnummer
+- #14 Rechnung-Validierung
+- #15 Tests für Rechnungslogik und Persistenz
+- #25 Firmenprofile verwalten und auswählen
+- #31 Rechnungen nach Status filtern
+- #39 Rechnungsübersicht und Rechnungseditor
+- #40 Rechnungs-Service für Berechnung und Status
+
+### Implementierter Stand
+
+- Rechnungen und Positionen werden als vollständiges Aggregat transaktional gespeichert.
+- Rechnungsnummern werden pro Jahr atomar im Format `JJJJ-NNN` vergeben.
+- Empfänger- und Absenderdaten werden beim Speichern als historische Snapshots übernommen.
+- Netto, Umsatzsteuer und Brutto werden aus den Positionen mit kaufmännischer Rundung und Steuergruppierung berechnet.
+- Firmenprofile können angelegt, bearbeitet, ausgewählt und – sofern nicht verwendet – gelöscht werden.
+- Der Rechnungseditor unterstützt flexible Positionen, Live-Summen, Kunden- und Profilauswahl sowie verständliche Validierungsfehler.
+- Die Rechnungsübersicht unterstützt Bearbeitung, Löschen, Statusänderung und Filterung.
+- Ungespeicherte Entwürfe werden vor Navigation, Abbruch und Fensterschließen geschützt.
+- Optimistische Parallelitätsprüfung verhindert das lautlose Überschreiben einer zwischenzeitlich geänderten Rechnung.
+- Kanonische Statuswerte verhindern abweichende Schreibweisen zwischen Core, SQLite und WPF.
+
+### Automatische Validierung
+
+- Release-Build: 0 Fehler, 0 Warnungen
+- Unit-, SQLite- und ViewModel-Tests: 131/131 erfolgreich
+- WPF-Start-Smoke-Test: erfolgreich
+- bekannte verwundbare NuGet-Pakete: keine
+
+### Manuelle Abnahme
+
+Der vollständige Bedienungstest wurde am 03.08.2026 ohne festgestellte Fehler abgeschlossen. Umfang und Menge der Testaufgaben wurden vom Benutzer ausdrücklich bestätigt.
+
+### Noch offen vor dem M3-Abschluss
+
+- Commit und Push des Feature-Branches
+- Pull Request und erfolgreiche GitHub-CI
+- Merge und Schließen der M3-Issues
 
 ## Spätere Verbesserungen
 

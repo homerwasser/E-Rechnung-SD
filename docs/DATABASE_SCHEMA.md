@@ -35,6 +35,7 @@ Aktueller Stand:
 | Version | Inhalt |
 |---|---|
 | 1 | Kunden, Firmenprofile, Rechnungen, Positionen und Indizes |
+| 2 | Firmenprofil-Land, Rechnungswährung, Stammdaten-Snapshots und jährliche Rechnungsnummernsequenz |
 
 ## M2: Kunden
 
@@ -51,15 +52,34 @@ Wichtige Felder in `tbl_Kunde`:
 
 Indizes unterstützen die Suche nach Firmenname und E-Mail.
 
-## Firmenprofile
+## M3: Firmenprofile
 
-`tbl_FirmaProfil` enthält die unterschiedlichen Absender bzw. Marken. Logo, Anschrift, Bankdaten und Steuerdaten werden pro Profil gespeichert. Repository und Einstellungsoberfläche folgen in einem späteren Meilenstein.
+`tbl_FirmaProfil` enthält unterschiedliche Absender beziehungsweise Marken. Name, Anschrift, Land, Kontakt-, Bank-, Steuer- und lokaler Logo-Pfad werden pro Profil gespeichert. Repository und WPF-Oberfläche unterstützen vollständiges CRUD.
 
-## Rechnungen und Positionen
+Ein Firmenprofil, das von einer Rechnung referenziert wird, kann wegen des Fremdschlüssels nicht gelöscht werden. Reale Firmenlogos und Stammdaten gehören ausschließlich in lokale, ignorierte Speicherorte.
 
-Die Tabellen sind im initialen Schema vorbereitet. Die Geschäftslogik und das transaktionale Master/Detail-Repository werden in M3 umgesetzt.
+## M3: Rechnungen und Positionen
 
-Fremdschlüssel schützen referenzierte Kunden und Firmenprofile vor versehentlichem Löschen. Positionen werden beim Löschen einer Rechnung kaskadierend entfernt.
+`tbl_Rechnung` und `tbl_RechnungsPosition` bilden ein Master/Detail-Aggregat. Anlegen, Aktualisieren und Löschen erfolgen transaktional. Ein Fehler beim Speichern einer Position rollt auch Rechnungskopf und Nummernreservierung zurück. Beim Aktualisieren dient `GeaendertAm` als optimistischer Concurrency-Token, damit eine veraltete zweite Bearbeitung keine neueren Änderungen überschreibt.
+
+Wichtige Rechnungsfelder:
+
+- eindeutige `Nummer` im Format `JJJJ-NNN`
+- Rechnungs- und optionales Fälligkeitsdatum
+- Kunde und Firmenprofil als geschützte Fremdschlüssel
+- Netto-, Steuer- und Bruttosumme
+- Währung, aktuell standardmäßig `EUR`
+- kanonischer Status
+- Bemerkung und technische Zeitstempel
+- strukturierte Empfänger- und Absender-Snapshots
+
+Snapshots bewahren die bei der Rechnungserstellung verwendeten Namen, Anschriften, Kontakt-, Bank- und Steuerdaten. Spätere Änderungen an Kunden oder Firmenprofilen verändern damit keine bereits gespeicherte Rechnung.
+
+Positionen enthalten Beschreibung, Menge, Einheit, Nettopreis, Steuersatz und eine stabile Reihenfolge. Beim Löschen einer Rechnung werden ihre Positionen per Cascade entfernt.
+
+## Rechnungsnummern
+
+`tbl_RechnungsnummerSequenz` führt die zuletzt vergebene laufende Nummer je Kalenderjahr. Reservierung und Rechnungsanlage laufen in derselben sofortigen SQLite-Transaktion. Bei einem Rollback wird keine Nummer verbraucht. Vorhandene Nummern im Format `JJJJ-<Ziffern>` werden beim Upgrade auf Migration 2 berücksichtigt.
 
 ## Backup
 

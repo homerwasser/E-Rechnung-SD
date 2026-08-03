@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Vollständige Kundenverwaltung mit Suche, Anlegen, Bearbeiten und Löschen
 - Validierung für Firmenname, E-Mail, Land und Postleitzahl
 - Unit- und SQLite-Integrationstests für M2
+- Firmenprofilverwaltung mit vollständigem CRUD
+- Rechnungsübersicht und Rechnungseditor mit flexiblen Positionen
+- Live-Berechnung von Netto, Umsatzsteuer und Brutto
+- automatische, transaktionale Rechnungsnummern pro Kalenderjahr
+- historische Empfänger- und Absender-Snapshots
+- Statusänderung und Filterung für alle definierten Rechnungsstatus
+- ViewModel-, Geschäftslogik-, Migrations- und Master/Detail-Integrationstests für M3
 - Datenschutzregeln für echte Rechnungen und lokale Vorlagendaten
 
 ### Changed
@@ -20,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Kunden-Repository liefert erzeugte IDs zurück und prüft Schreiboperationen
 - Roadmap und KI-Arbeitsablauf an verbindliche Abnahmekriterien angepasst
 - Test- und SQLite-Abhängigkeiten auf sichere Patchstände aktualisiert
+- Hauptnavigation auf MVVM-basierte Ansichten umgestellt
+- Rechnungsschreibvorgänge als atomare Master/Detail-Transaktionen umgesetzt
+- Optimistische Parallelitätsprüfung für Rechnungsänderungen ergänzt
+- Ungespeicherte Rechnungsentwürfe vor Navigation und Fensterschließen geschützt
 
 ### Fixed
 - Unlesbare aktive und inaktive Kundenauswahl im dunklen Farbschema
@@ -27,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Doppeltes Öffnen des Hauptfensters beim Programmstart
 - Nicht lesbare Tabellenüberschriften im dunklen Farbschema
 - Funktionslose Kunden-Schaltflächen
+- Unlesbare ComboBox-Auswahl im dunklen Rechnungseditor
+- Verlustbehaftete Anzeige präziser Dezimalwerte im Rechnungseditor
+- Windows-PowerShell-inkompatibles Beenden im WPF-Start-Smoke-Test
 
 ### Security
 - Vertrauliche lokale Eingabeordner werden von Git ignoriert

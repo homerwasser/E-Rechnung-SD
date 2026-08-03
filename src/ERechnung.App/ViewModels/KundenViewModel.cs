@@ -1,9 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using ERechnung.App.Services;
@@ -12,7 +10,7 @@ using ERechnung.Core.Services;
 
 namespace ERechnung.App.ViewModels;
 
-public sealed class KundenViewModel : INotifyPropertyChanged
+public sealed class KundenViewModel : ViewModelBase
 {
     private readonly IRepository<Kunde> _kundeRepository;
     private readonly IUserDialogService _dialogService;
@@ -56,7 +54,7 @@ public sealed class KundenViewModel : INotifyPropertyChanged
         get => _ausgewaehlterKunde;
         set
         {
-            if (SetField(ref _ausgewaehlterKunde, value))
+            if (SetProperty(ref _ausgewaehlterKunde, value))
             {
                 AktualisiereCommandStatus();
             }
@@ -66,7 +64,7 @@ public sealed class KundenViewModel : INotifyPropertyChanged
     public Kunde KundenEntwurf
     {
         get => _kundenEntwurf;
-        private set => SetField(ref _kundenEntwurf, value);
+        private set => SetProperty(ref _kundenEntwurf, value);
     }
 
     public string Suchbegriff
@@ -74,7 +72,7 @@ public sealed class KundenViewModel : INotifyPropertyChanged
         get => _suchbegriff;
         set
         {
-            if (SetField(ref _suchbegriff, value))
+            if (SetProperty(ref _suchbegriff, value))
             {
                 WendeFilterAn();
             }
@@ -84,13 +82,13 @@ public sealed class KundenViewModel : INotifyPropertyChanged
     public string Statusmeldung
     {
         get => _statusmeldung;
-        private set => SetField(ref _statusmeldung, value);
+        private set => SetProperty(ref _statusmeldung, value);
     }
 
     public string Fehlermeldung
     {
         get => _fehlermeldung;
-        private set => SetField(ref _fehlermeldung, value);
+        private set => SetProperty(ref _fehlermeldung, value);
     }
 
     public bool IstEditorSichtbar
@@ -98,7 +96,7 @@ public sealed class KundenViewModel : INotifyPropertyChanged
         get => _istEditorSichtbar;
         private set
         {
-            if (SetField(ref _istEditorSichtbar, value))
+            if (SetProperty(ref _istEditorSichtbar, value))
             {
                 AktualisiereCommandStatus();
             }
@@ -110,7 +108,7 @@ public sealed class KundenViewModel : INotifyPropertyChanged
         get => _istBeschaeftigt;
         private set
         {
-            if (SetField(ref _istBeschaeftigt, value))
+            if (SetProperty(ref _istBeschaeftigt, value))
             {
                 AktualisiereCommandStatus();
             }
@@ -314,17 +312,5 @@ public sealed class KundenViewModel : INotifyPropertyChanged
         ErstelltAm = quelle.ErstelltAm
     };
 
-    public event PropertyChangedEventHandler? PropertyChanged;
 
-    private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-        {
-            return false;
-        }
-
-        field = value;
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        return true;
-    }
 }

@@ -1,11 +1,11 @@
 namespace ERechnung.Core.Models;
 
 /// <summary>
-/// Stammdaten eines rechnungsstellenden Unternehmens.
+/// Unabhängige Kopie der Absenderstammdaten zum Zeitpunkt der Rechnungserstellung.
 /// </summary>
-public class FirmaProfil
+public class RechnungsAbsenderSnapshot
 {
-    public int? Id { get; set; }
+    public int QuellId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string LogoPfad { get; set; } = string.Empty;
     public string Ansprechpartner { get; set; } = string.Empty;
@@ -15,7 +15,7 @@ public class FirmaProfil
     public string Land { get; set; } = "DE";
     public string Email { get; set; } = string.Empty;
     public string Telefon { get; set; } = string.Empty;
+    public string? UstIdNr { get; set; }
     public string IBAN { get; set; } = string.Empty;
     public string BIC { get; set; } = string.Empty;
-    public string? UstIdNr { get; set; }
 }

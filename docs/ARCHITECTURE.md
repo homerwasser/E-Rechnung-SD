@@ -104,8 +104,9 @@ E-Rechnung-SD.sln
 │       └── Layout/               | PDF-Layouts
 │
 ├── tests/
-│   ├── ERechnung.Tests.Unit/     # Unit Tests (xUnit)
-│   └── ERechnung.Tests.Integration/ # Integration Tests
+│   ├── ERechnung.Tests.Unit/     # reine Geschäftslogik (xUnit)
+│   ├── ERechnung.Tests.Integration/ # SQLite-Integrationstests
+│   └── ERechnung.Tests.App/      # WPF-ViewModel-Tests
 │
 ├── build/                        | Build-Skripte
 ├── .github/                      # CI/CD, Templates
@@ -121,7 +122,7 @@ Siehe `DATABASE_SCHEMA.md` für Details.
 | Vom ... | Zum ...                | Mechanismus                   |
 |----------|------------------------|-------------------------------|
 | View → ViewModel | Command Pattern (RelayCommand) |
-| ViewModel → Service | Injizierte Interfaces (DI-Container) |
+| ViewModel → Service | Konstruktorinjektion im Composition Root |
 | Service → Repository | Injizierte IRepositories |
 | Repository → SQLite | Dapper + ConnectionString |
 | PDF Generator → Outlook | Process.Start(mailto: ...) |

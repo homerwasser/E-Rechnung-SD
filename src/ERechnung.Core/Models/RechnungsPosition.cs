@@ -7,12 +7,17 @@ public class RechnungsPosition
 {
     public int? Id { get; set; }
     public int? RechnungId { get; set; }
-    
+    public int Reihenfolge { get; set; }
+
     public string Beschreibung { get; set; } = string.Empty;
     public decimal Menge { get; set; } = 1m;
-    public string Einheit { get; set; } = "ST"; // ST, Tage, Std, km
-    
+    public string Einheit { get; set; } = "ST";
+
     public decimal EinzelpreisNetto { get; set; }
-    public decimal Steuersatz { get; set; } = 19m; // Prozent (0, 7, 19, 25)
-    public decimal GesamtpreisNetto => Menge * EinzelpreisNetto;
+    public decimal Steuersatz { get; set; } = 19m;
+
+    public decimal GesamtpreisNetto => decimal.Round(
+        Menge * EinzelpreisNetto,
+        2,
+        MidpointRounding.AwayFromZero);
 }
