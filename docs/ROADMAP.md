@@ -9,7 +9,7 @@ GitHub ist die maßgebliche Quelle für Issues und Meilensteine:
 |---|---|---|
 | M1 | Projekt-Setup und Grundgerüst | Implementiert; GitHub-Abschluss noch zu bereinigen |
 | M2 | Datenbank und Kundenverwaltung | Abgeschlossen und abgenommen am 02.08.2026 |
-| M3 | Rechnungserstellung (Kern) | Bereit zur Integration; manueller Test am 03.08.2026 erfolgreich |
+| M3 | Rechnungserstellung (Kern) | Abgeschlossen und abgenommen am 03.08.2026 |
 | M4 | PDF-Generierung und E-Mail | Geplant |
 | M5 | E-Rechnung: EN 16931, UBL/XRechnung und Factur-X/ZUGFeRD | Geplant |
 | M6 | Vorlagen und Einstellungen | Geplant |
@@ -83,11 +83,12 @@ Zugeordnete GitHub-Issues:
 
 Der vollständige Bedienungstest wurde am 03.08.2026 ohne festgestellte Fehler abgeschlossen. Umfang und Menge der Testaufgaben wurden vom Benutzer ausdrücklich bestätigt.
 
-### Noch offen vor dem M3-Abschluss
+### M3-Abschluss
 
-- Commit und Push des Feature-Branches
-- Pull Request und erfolgreiche GitHub-CI
-- Merge und Schließen der M3-Issues
+- Feature-PR #41 wurde nach erfolgreicher GitHub-CI per Squash gemergt.
+- Alle acht zugeordneten M3-Issues sind geschlossen.
+- Build, 131 automatisierte Tests, Start-Smoke-Test und Paketprüfung waren erfolgreich.
+- Der vollständige manuelle Bedienungstest wurde ohne festgestellte Fehler abgenommen.
 
 ## Spätere Verbesserungen
 
