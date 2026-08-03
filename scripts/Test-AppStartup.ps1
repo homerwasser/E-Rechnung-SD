@@ -37,7 +37,7 @@ finally {
     if (-not $process.HasExited) {
         $null = $process.CloseMainWindow()
         if (-not $process.WaitForExit(3000)) {
-            $process.Kill($true)
+            $process.Kill()
             $process.WaitForExit()
         }
     }

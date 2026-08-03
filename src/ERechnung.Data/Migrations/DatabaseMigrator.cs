@@ -9,7 +9,11 @@ public static class DatabaseMigrator
 {
     private static readonly IReadOnlyList<MigrationDefinition> Migrations =
     [
-        new(InitialMigration.Version, InitialMigration.Name, InitialMigration.Sql)
+        new(InitialMigration.Version, InitialMigration.Name, InitialMigration.Sql),
+        new(
+            AddInvoiceCreationSchemaMigration.Version,
+            AddInvoiceCreationSchemaMigration.Name,
+            AddInvoiceCreationSchemaMigration.Sql)
     ];
 
     public static async Task MigrateAsync(string connectionString)
@@ -26,24 +30,26 @@ public static class DatabaseMigrator
             );
             """);
 
-        var appliedVersions = new HashSet<int>(await connection.QueryAsync<int>(
-            "SELECT Version FROM SchemaMigrations ORDER BY Version;"));
-
         foreach (var migration in Migrations)
         {
-            if (appliedVersions.Contains(migration.Version))
-            {
-                continue;
-            }
-
-            await using var transaction = await connection.BeginTransactionAsync();
+            await using var transaction = connection.BeginTransaction(deferred: false);
             try
             {
-                await connection.ExecuteAsync(migration.Sql, transaction: transaction);
-                await connection.ExecuteAsync(
-                    "INSERT INTO SchemaMigrations (Version, Name) VALUES (@Version, @Name);",
-                    new { migration.Version, migration.Name },
-                    transaction);
+                var istBereitsAngewendet = await connection.ExecuteScalarAsync<long>("""
+                    SELECT COUNT(*)
+                    FROM SchemaMigrations
+                    WHERE Version = @Version;
+                    """, new { migration.Version }, transaction) > 0;
+
+                if (!istBereitsAngewendet)
+                {
+                    await connection.ExecuteAsync(migration.Sql, transaction: transaction);
+                    await connection.ExecuteAsync(
+                        "INSERT INTO SchemaMigrations (Version, Name) VALUES (@Version, @Name);",
+                        new { migration.Version, migration.Name },
+                        transaction);
+                }
+
                 await transaction.CommitAsync();
             }
             catch

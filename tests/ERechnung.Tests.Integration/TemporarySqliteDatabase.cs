@@ -20,7 +20,9 @@ internal sealed class TemporarySqliteDatabase : IDisposable
         {
             DataSource = databasePath,
             Mode = SqliteOpenMode.ReadWriteCreate,
-            Pooling = false
+            Pooling = false,
+            ForeignKeys = true,
+            DefaultTimeout = 30
         }.ToString();
     }
 

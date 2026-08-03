@@ -18,11 +18,15 @@ Eine Windows-Desktop-Anwendung zur Erstellung und Verwaltung elektronischer Rech
 - lokale SQLite-Datenbank außerhalb des Programmordners
 - versionierte Datenbankmigrationen
 - Kundenverwaltung mit Suche und CRUD-Funktionen
-- automatisierte Build-, Unit- und Integrationstests
+- Verwaltung mehrerer Firmen- und Absenderprofile
+- Rechnungserstellung mit flexiblen Positionen und Live-Summen
+- automatische jährliche Rechnungsnummern
+- Rechnungsübersicht mit Statusänderung und Statusfilter
+- historische Stammdaten-Snapshots pro Rechnung
+- automatisierte Build-, Unit-, ViewModel- und SQLite-Integrationstests
 
 ### Geplant
 
-- Rechnungserstellung mit flexiblen Kostenpositionen
 - PDF-Ausgabe
 - EN-16931-konformer XML-Export und -Import
 - Factur-X/ZUGFeRD und XRechnung

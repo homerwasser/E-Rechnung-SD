@@ -1,37 +1,36 @@
-using System;
-using System.Collections.Generic;
 using System.Net.Mail;
 using ERechnung.Core.Models;
 
 namespace ERechnung.Core.Services;
 
-public static class KundeValidator
+public static class FirmaProfilValidator
 {
-    public static IReadOnlyList<string> Validate(Kunde kunde)
+    public static IReadOnlyList<string> Validate(FirmaProfil firmaProfil)
     {
-        ArgumentNullException.ThrowIfNull(kunde);
+        ArgumentNullException.ThrowIfNull(firmaProfil);
         var errors = new List<string>();
 
-        if (string.IsNullOrWhiteSpace(kunde.Firmenname))
+        if (string.IsNullOrWhiteSpace(firmaProfil.Name))
         {
             errors.Add("Der Firmenname ist erforderlich.");
         }
-        else if (kunde.Firmenname.Trim().Length > 200)
+        else if (firmaProfil.Name.Trim().Length > 200)
         {
             errors.Add("Der Firmenname darf höchstens 200 Zeichen lang sein.");
         }
 
-        if (!string.IsNullOrWhiteSpace(kunde.Email) && !MailAddress.TryCreate(kunde.Email.Trim(), out _))
+        if (!string.IsNullOrWhiteSpace(firmaProfil.Email)
+            && !MailAddress.TryCreate(firmaProfil.Email.Trim(), out _))
         {
             errors.Add("Die E-Mail-Adresse ist ungültig.");
         }
 
-        if (!IstZweistelligerAsciiBuchstabencode(kunde.Land))
+        if (!IstZweistelligerAsciiBuchstabencode(firmaProfil.Land))
         {
             errors.Add("Das Land muss als zweistelliger Ländercode angegeben werden, z. B. DE.");
         }
 
-        if (kunde.PLZ.Length > 20)
+        if ((firmaProfil.PLZ?.Length ?? 0) > 20)
         {
             errors.Add("Die Postleitzahl darf höchstens 20 Zeichen lang sein.");
         }
