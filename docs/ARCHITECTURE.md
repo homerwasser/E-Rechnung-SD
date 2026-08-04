@@ -13,9 +13,9 @@
 | UI                 | WPF (XAML/C#)                 | Reife Desktop-GUI, MVVM-Pattern, Datenbindung      |
 | Datenbank          | SQLite                        | Datei-basiert, getrennt vom Programm, einfache Backup |
 | ORM                | Dapper                        | Leichtgewichtig, performant                         |
-| XML-Parser         | `System.Xml.Linq`             | Eingebaut, ideal für UBL 2.2 / Factur-X            |
-| PDF-Generierung    | QuestPDF                      | Open-Source, moderne API, Factur-X Embedding       |
-| E-Mail-Sendung     | `System.Diagnostics.Process`  | Öffnet Outlook (Standard-Mail-Client)              |
+| XML-Parser         | `System.Xml.Linq`             | Eingebaut, für UBL 2.2 und Factur-X/CII in M5      |
+| PDF-Generierung    | QuestPDF                      | PDF/A-3B, moderne Layout-API, Community-Lizenz     |
+| E-Mail-Entwurf     | Outlook COM + RFC-6068-`mailto:` | Anhang in klassischem Outlook, sicherer Fallback |
 | Updaten            | Eigenes Update-Service        | Prüft GitHub Release-API, lädt neue .exe herunter  |
 | Build & Test       | dotnet CLI + xUnit            | Standard .NET-Ökosystem                             |
 | IDE                | VS Code + C# Dev Kit          | Kostenlos, reicht für komplette Entwicklung         |
@@ -62,9 +62,9 @@
 │  └────────────────────────────────────────────────────┘      │
 │                                                              │
 │  ┌────────────────────────────────────────────────────┐      │
-│  │  Backup-Ordner (%APPDATA%/ERechnung/backups/)     │      │
-│  │  - Tägliches Backup (.db.bak)                      │      │
-│  │  - Manuelle Sicherungen                            │      │
+│  │  PDF-Ablage (%LOCALAPPDATA%/ERechnung-SD/pdf/)    │      │
+│  │  - versionierte PDF/A-3B-Rechnungen                │      │
+│  │  - relative Verknüpfungen in SQLite                │      │
 │  └────────────────────────────────────────────────────┘      │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -99,9 +99,7 @@ E-Rechnung-SD.sln
 │   │   └── Schemas/              | XSD-Schemata
 │   │
 │   └── ERechnung.PDF/            # PDF-Generierung
-│       ├── FacturXEmbedder/      # Factur-X in PDF einbetten
-│       ├── VorlagenRenderer/     # Vorlage-basierter Renderer
-│       └── Layout/               | PDF-Layouts
+│       └── Generators/           # QuestPDF-Layout und PDF/A-3B-Ausgabe
 │
 ├── tests/
 │   ├── ERechnung.Tests.Unit/     # reine Geschäftslogik (xUnit)
@@ -125,12 +123,17 @@ Siehe `DATABASE_SCHEMA.md` für Details.
 | ViewModel → Service | Konstruktorinjektion im Composition Root |
 | Service → Repository | Injizierte IRepositories |
 | Repository → SQLite | Dapper + ConnectionString |
-| PDF Generator → Outlook | Process.Start(mailto: ...) |
+| ViewModel → PDF-Ablage | relative, geprüfte Pfade unter `%LOCALAPPDATA%` |
+| ViewModel → klassisches Outlook | COM-Automation mit `Display(false)`, niemals `Send` |
+| ViewModel → Standard-Mail-Client | RFC-6068-`mailto:` ohne Anhang; manuelles Anhängen |
 | Update Service → GitHub | HttpClient auf releases/latest |
 
 ## Sicherheit
 
 - SQLite-Datenbank in `%LOCALAPPDATA%\ERechnung-SD\data\` (benutzerprivat)
+- Rechnungs-PDFs in `%LOCALAPPDATA%\ERechnung-SD\pdf\<Jahr>\`
+- technische PDF-Dateinamen ohne Kundennamen und mit eindeutiger Versionskennung
+- Pfadvalidierung gegen Traversal, absolute Pfade und Reparse-Points
 - Backups in `%LOCALAPPDATA%\ERechnung-SD\backups\`
 - Keine sensiblen Daten in Logs
 - Verschlüsselung der DB optional per SQLCipher

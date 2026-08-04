@@ -153,17 +153,25 @@
                                 <ColumnDefinition Width="16"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="16"/>
-                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="100"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="Rechnungsdatum *" Style="{StaticResource LabelStyle}"/>
                                 <DatePicker SelectedDate="{Binding Rechnungsdatum, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
                             <StackPanel Grid.Column="2">
+                                <TextBlock Text="Leistungs-/Veranstaltungsdatum"
+                                           TextWrapping="Wrap"
+                                           Style="{StaticResource LabelStyle}"/>
+                                <DatePicker SelectedDate="{Binding Leistungsdatum, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="4">
                                 <TextBlock Text="Fälligkeit" Style="{StaticResource LabelStyle}"/>
                                 <DatePicker SelectedDate="{Binding Faelligkeitsdatum, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
                             </StackPanel>
-                            <StackPanel Grid.Column="4">
+                            <StackPanel Grid.Column="6">
                                 <TextBlock Text="Währung" Style="{StaticResource LabelStyle}"/>
                                 <TextBox Text="EUR" IsReadOnly="True" Style="{StaticResource InputStyle}"/>
                             </StackPanel>

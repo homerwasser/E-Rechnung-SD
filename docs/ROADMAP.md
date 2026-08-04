@@ -10,7 +10,7 @@ GitHub ist die maßgebliche Quelle für Issues und Meilensteine:
 | M1 | Projekt-Setup und Grundgerüst | Implementiert; GitHub-Abschluss noch zu bereinigen |
 | M2 | Datenbank und Kundenverwaltung | Abgeschlossen und abgenommen am 02.08.2026 |
 | M3 | Rechnungserstellung (Kern) | Abgeschlossen und abgenommen am 03.08.2026 |
-| M4 | PDF-Generierung und E-Mail | Geplant |
+| M4 | PDF-Generierung und E-Mail | Implementiert; manuelle Abnahme und GitHub-Abschluss ausstehend |
 | M5 | E-Rechnung: EN 16931, UBL/XRechnung und Factur-X/ZUGFeRD | Geplant |
 | M6 | Vorlagen und Einstellungen | Geplant |
 | M7 | Backup, Update und Veröffentlichung | Geplant |
@@ -89,6 +89,46 @@ Der vollständige Bedienungstest wurde am 03.08.2026 ohne festgestellte Fehler a
 - Alle acht zugeordneten M3-Issues sind geschlossen.
 - Build, 131 automatisierte Tests, Start-Smoke-Test und Paketprüfung waren erfolgreich.
 - Der vollständige manuelle Bedienungstest wurde ohne festgestellte Fehler abgenommen.
+
+## M4 – PDF-Generierung und E-Mail
+
+Zugeordnete GitHub-Issues:
+
+- #16 QuestPDF-Integration
+- #17 professionelles PDF-Layout
+- #18 Leistungsdatum in Rechnung und PDF
+- #19 PDF lokal speichern, verknüpfen und öffnen
+- #20 interaktiver E-Mail-Entwurf mit sicherem Fallback
+- #21 PDF-, Ablage- und E-Mail-Tests
+
+### Implementierter Stand
+
+- QuestPDF erzeugt komprimierte PDF/A-3B-Dokumente im deutschen Zahlen- und Datumsformat.
+- Absender-, Empfänger- und Logo-Snapshots halten die historische Rechnungsdarstellung stabil.
+- Ein- und mehrseitige Positionslisten wiederholen den Tabellenkopf und weisen Steuergruppen getrennt aus.
+- PDFs werden mit technischen, eindeutigen Dateinamen unter `%LOCALAPPDATA%\ERechnung-SD\pdf\<Jahr>\` gespeichert; SQLite enthält nur relative Pfade und Zeitstempel.
+- Die Übersicht unterscheidet `Kein PDF`, `Aktuell`, `Veraltet` und `Datei fehlt` und kann PDFs öffnen oder im Explorer anzeigen.
+- Änderungen an einer Rechnung erhalten die alte PDF-Verknüpfung, markieren sie über den Rechnungszeitstempel aber als veraltet.
+- Optimistische Prüfungen auf Rechnungsstand und erwartete Vorgänger-PDF verhindern verlorene Verknüpfungen bei paralleler Erzeugung oder Löschung.
+- Klassisches Outlook öffnet einen Entwurf mit PDF-Anhang. Ist es nicht verfügbar, öffnet die Anwendung den Standard-Mail-Client über `mailto:` ohne Anhang, weist auf das manuelle Anhängen hin und zeigt die PDF im Explorer.
+- Es wird weder automatisch versendet noch der Rechnungsstatus automatisch geändert.
+- Beim Löschen einer Rechnung wird eine verknüpfte PDF mitgelöscht; scheitert die Dateilöschung, bleibt der Datenbankeintrag erhalten.
+
+### Technische Validierung
+
+- Release-Build: 0 Fehler, 0 Warnungen
+- Unit-, SQLite- und ViewModel-Tests: 224/224 erfolgreich
+- synthetische Einseiten-, Mischsteuer- und Sechsseiten-PDFs erfolgreich erzeugt und gerendert
+- selbstenthaltende `win-x64`-PDF-Erzeugung einschließlich nativer QuestPDF-Komponenten erfolgreich
+- vollständige WPF-Anwendung als selbstenthaltendes Single-File-Paket veröffentlicht und erfolgreich gestartet
+- WPF-Start-Smoke-Test für Release-Build und veröffentlichtes Paket erfolgreich
+- keine bekannten verwundbaren direkten oder transitiven NuGet-Pakete
+- PDF/A-3B-Kennung in den XMP-Metadaten vorhanden; unabhängige Zertifizierung mit einem externen PDF/A-Validator steht noch aus
+
+### Noch offen
+
+- manueller Bedienungs- und Sichttest
+- Pull Request, GitHub-CI, Merge sowie Abschluss der Issues und des Meilensteins
 
 ## Spätere Verbesserungen
 

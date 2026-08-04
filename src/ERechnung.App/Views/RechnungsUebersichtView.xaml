@@ -6,11 +6,19 @@
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <Style x:Key="ToolbarButtonStyle" TargetType="Button">
             <Setter Property="Padding" Value="12,7"/>
-            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="Background" Value="#3A3A3D"/>
             <Setter Property="BorderBrush" Value="#626267"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Background" Value="#454545"/>
+                    <Setter Property="Foreground" Value="#B5B5B5"/>
+                    <Setter Property="BorderBrush" Value="#5A5A5A"/>
+                    <Setter Property="Cursor" Value="Arrow"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
         <Style x:Key="ComboStyle" TargetType="ComboBox">
             <Setter Property="Background" Value="#F2F2F2"/>
@@ -42,6 +50,7 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
@@ -50,41 +59,32 @@
                        Foreground="#BDBDBD" FontSize="14" Margin="0,5,0,0"/>
         </StackPanel>
 
-        <Grid Grid.Row="1" Margin="0,0,0,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <StackPanel Grid.Column="0" Orientation="Horizontal">
-                <TextBlock Text="Statusfilter" Foreground="#D8D8D8" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <ComboBox ItemsSource="{Binding FilterOptionen}"
-                          SelectedItem="{Binding AusgewaehlterFilter, Mode=TwoWay}"
-                          DisplayMemberPath="Anzeigename"
-                          Width="150"
-                          Style="{StaticResource ComboStyle}"/>
-                <Button Content="Anwenden"
-                        Command="{Binding FilterAnwendenCommand}"
-                        Style="{StaticResource ToolbarButtonStyle}"
-                        Margin="8,0,0,0"/>
-            </StackPanel>
-
-            <StackPanel Grid.Column="2" Orientation="Horizontal">
-                <Button Content="Neue Rechnung"
-                        Command="{Binding NeuCommand}"
-                        Background="#16823A"
-                        Style="{StaticResource ToolbarButtonStyle}"/>
-                <Button Content="Bearbeiten"
-                        Command="{Binding BearbeitenCommand}"
-                        Style="{StaticResource ToolbarButtonStyle}"/>
-                <Button Content="Löschen"
-                        Command="{Binding LoeschenCommand}"
-                        Background="#A63A3A"
-                        Style="{StaticResource ToolbarButtonStyle}"
-                        Margin="0"/>
-            </StackPanel>
-        </Grid>
+        <WrapPanel Grid.Row="1" Margin="0,0,0,4">
+            <TextBlock Text="Statusfilter"
+                       Foreground="#D8D8D8"
+                       VerticalAlignment="Center"
+                       Margin="0,0,8,8"/>
+            <ComboBox ItemsSource="{Binding FilterOptionen}"
+                      SelectedItem="{Binding AusgewaehlterFilter, Mode=TwoWay}"
+                      DisplayMemberPath="Anzeigename"
+                      Width="150"
+                      Margin="0,0,8,8"
+                      Style="{StaticResource ComboStyle}"/>
+            <Button Content="Anwenden"
+                    Command="{Binding FilterAnwendenCommand}"
+                    Style="{StaticResource ToolbarButtonStyle}"/>
+            <Button Content="Neue Rechnung"
+                    Command="{Binding NeuCommand}"
+                    Background="#16823A"
+                    Style="{StaticResource ToolbarButtonStyle}"/>
+            <Button Content="Bearbeiten"
+                    Command="{Binding BearbeitenCommand}"
+                    Style="{StaticResource ToolbarButtonStyle}"/>
+            <Button Content="Löschen"
+                    Command="{Binding LoeschenCommand}"
+                    Background="#A63A3A"
+                    Style="{StaticResource ToolbarButtonStyle}"/>
+        </WrapPanel>
 
         <DataGrid Grid.Row="2"
                   ItemsSource="{Binding Rechnungen}"
@@ -101,7 +101,8 @@
                   GridLinesVisibility="Horizontal"
                   HorizontalGridLinesBrush="#3E3E42"
                   RowBackground="#252526"
-                  AlternatingRowBackground="#2D2D2E">
+                  AlternatingRowBackground="#2D2D2E"
+                  HorizontalScrollBarVisibility="Auto">
             <DataGrid.Resources>
                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#007ACC"/>
                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="White"/>
@@ -142,20 +143,49 @@
             </DataGrid.Resources>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Nummer" Binding="{Binding Nummer}" Width="1.1*" MinWidth="115"/>
-                <DataGridTextColumn Header="Datum" Binding="{Binding Rechnungsdatum, StringFormat={}{0:d}}" Width="*" MinWidth="105"/>
-                <DataGridTextColumn Header="Kunde" Binding="{Binding KundeName}" Width="2*" MinWidth="180"/>
-                <DataGridTextColumn Header="Brutto" Binding="{Binding GesamtbetragBrutto, StringFormat={}{0:N2} €}" Width="*" MinWidth="120"/>
-                <DataGridTextColumn Header="Status" Binding="{Binding StatusAnzeige}" Width="*" MinWidth="110"/>
+                <DataGridTextColumn Header="Datum" Binding="{Binding Rechnungsdatum, StringFormat={}{0:d}}" Width="*" MinWidth="100"/>
+                <DataGridTextColumn Header="Kunde" Binding="{Binding KundeName}" Width="2*" MinWidth="170"/>
+                <DataGridTextColumn Header="Brutto" Binding="{Binding GesamtbetragBrutto, StringFormat={}{0:N2} €}" Width="*" MinWidth="115"/>
+                <DataGridTextColumn Header="Status" Binding="{Binding StatusAnzeige}" Width="*" MinWidth="105"/>
+                <DataGridTextColumn Header="PDF" Binding="{Binding PdfStatus}" Width="*" MinWidth="105"/>
             </DataGrid.Columns>
         </DataGrid>
 
         <Border Grid.Row="3"
                 Margin="0,12,0,0"
+                Padding="12,12,4,4"
+                Background="#2D2D30"
+                BorderBrush="#55555A"
+                BorderThickness="1">
+            <WrapPanel>
+                <TextBlock Text="PDF und Versand"
+                           Foreground="#D8D8D8"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,8"/>
+                <Button Content="PDF erstellen/aktualisieren"
+                        Command="{Binding PdfErstellenAktualisierenCommand}"
+                        Background="#007ACC"
+                        Style="{StaticResource ToolbarButtonStyle}"/>
+                <Button Content="PDF öffnen"
+                        Command="{Binding PdfOeffnenCommand}"
+                        Style="{StaticResource ToolbarButtonStyle}"/>
+                <Button Content="Im Explorer anzeigen"
+                        Command="{Binding ImExplorerAnzeigenCommand}"
+                        Style="{StaticResource ToolbarButtonStyle}"/>
+                <Button Content="E-Mail-Entwurf öffnen"
+                        Command="{Binding EmailEntwurfOeffnenCommand}"
+                        Style="{StaticResource ToolbarButtonStyle}"/>
+            </WrapPanel>
+        </Border>
+
+        <Border Grid.Row="4"
+                Margin="0,10,0,0"
                 Padding="12"
                 Background="#2D2D30"
                 BorderBrush="#55555A"
                 BorderThickness="1">
-            <DockPanel>
+            <DockPanel LastChildFill="True">
                 <Button DockPanel.Dock="Right"
                         Content="Status übernehmen"
                         Command="{Binding StatusAendernCommand}"
@@ -174,10 +204,10 @@
             </DockPanel>
         </Border>
 
-        <Grid Grid.Row="4" Margin="0,10,0,0">
-            <StackPanel>
+        <Grid Grid.Row="5" Margin="0,10,0,0">
+            <StackPanel Margin="0,0,130,0">
                 <TextBlock Text="{Binding Fehlermeldung}" Foreground="#FF8F8F" TextWrapping="Wrap"/>
-                <TextBlock Text="{Binding Statusmeldung}" Foreground="#BDBDBD"/>
+                <TextBlock Text="{Binding Statusmeldung}" Foreground="#BDBDBD" TextWrapping="Wrap"/>
             </StackPanel>
             <TextBlock Text="Bitte warten …"
                        HorizontalAlignment="Right"

@@ -10,6 +10,7 @@ public class Rechnung
     public string Titel { get; set; } = string.Empty;
     public DateTime Erstellungsdatum { get; set; } = DateTime.Today;
     public DateTime Rechnungsdatum { get; set; } = DateTime.Today;
+    public DateTime? Leistungsdatum { get; set; }
     public DateTime? Faeligkeitsdatum { get; set; }
 
     public int? KundeId { get; set; }
@@ -33,4 +34,5 @@ public class Rechnung
 
     public DateTime ErstelltAm { get; set; } = DateTime.UtcNow;
     public DateTime GeaendertAm { get; set; } = DateTime.UtcNow;
+    public RechnungsPdfVerknuepfung? PdfVerknuepfung { get; set; }
 }

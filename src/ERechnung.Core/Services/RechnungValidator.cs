@@ -26,6 +26,11 @@ public static class RechnungValidator
             errors.Add("Das Rechnungsdatum ist ungültig.");
         }
 
+        if (rechnung.Leistungsdatum?.Date < FruehestesRechnungsdatum)
+        {
+            errors.Add("Das Leistungsdatum ist ungültig.");
+        }
+
         if (rechnung.KundeId is null or <= 0)
         {
             errors.Add("Ein Kunde ist erforderlich.");

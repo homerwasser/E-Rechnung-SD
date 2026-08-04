@@ -9,10 +9,19 @@ namespace ERechnung.App.ViewModels;
 public sealed class RechnungsUebersichtViewModel : ViewModelBase
 {
     private readonly RechnungService _rechnungService;
+    private readonly RechnungsPdfService _rechnungsPdfService;
+    private readonly IRechnungsPdfAblage _pdfAblage;
+    private readonly IDateiOeffner _dateiOeffner;
+    private readonly EmailEntwurfComposer _emailEntwurfComposer;
+    private readonly IEmailEntwurfService _emailEntwurfService;
     private readonly IUserDialogService _dialogService;
     private readonly AsyncRelayCommand _bearbeitenCommand;
     private readonly AsyncRelayCommand _loeschenCommand;
     private readonly AsyncRelayCommand _statusAendernCommand;
+    private readonly AsyncRelayCommand _pdfErstellenAktualisierenCommand;
+    private readonly RelayCommand _pdfOeffnenCommand;
+    private readonly RelayCommand _imExplorerAnzeigenCommand;
+    private readonly AsyncRelayCommand _emailEntwurfOeffnenCommand;
 
     private RechnungsListenEintragViewModel? _ausgewaehlteRechnung;
     private RechnungsStatusOption _ausgewaehlterFilter;
@@ -23,9 +32,22 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
 
     public RechnungsUebersichtViewModel(
         RechnungService rechnungService,
+        RechnungsPdfService rechnungsPdfService,
+        IRechnungsPdfAblage pdfAblage,
+        IDateiOeffner dateiOeffner,
+        EmailEntwurfComposer emailEntwurfComposer,
+        IEmailEntwurfService emailEntwurfService,
         IUserDialogService dialogService)
     {
         _rechnungService = rechnungService ?? throw new ArgumentNullException(nameof(rechnungService));
+        _rechnungsPdfService = rechnungsPdfService
+            ?? throw new ArgumentNullException(nameof(rechnungsPdfService));
+        _pdfAblage = pdfAblage ?? throw new ArgumentNullException(nameof(pdfAblage));
+        _dateiOeffner = dateiOeffner ?? throw new ArgumentNullException(nameof(dateiOeffner));
+        _emailEntwurfComposer = emailEntwurfComposer
+            ?? throw new ArgumentNullException(nameof(emailEntwurfComposer));
+        _emailEntwurfService = emailEntwurfService
+            ?? throw new ArgumentNullException(nameof(emailEntwurfService));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
 
         FilterOptionen = new[] { new RechnungsStatusOption(null, "Alle") }
@@ -50,6 +72,18 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
             () => AusgewaehlteRechnung is not null
                   && AusgewaehlterNeuerStatus?.Wert is not null
                   && !IstBeschaeftigt);
+        _pdfErstellenAktualisierenCommand = new AsyncRelayCommand(
+            PdfErstellenAktualisierenAsync,
+            () => AusgewaehlteRechnung?.KannPdfErstellen == true && !IstBeschaeftigt);
+        _pdfOeffnenCommand = new RelayCommand(
+            PdfOeffnen,
+            () => AusgewaehlteRechnung?.KannPdfOeffnen == true && !IstBeschaeftigt);
+        _imExplorerAnzeigenCommand = new RelayCommand(
+            ImExplorerAnzeigen,
+            () => AusgewaehlteRechnung?.KannImExplorerAnzeigen == true && !IstBeschaeftigt);
+        _emailEntwurfOeffnenCommand = new AsyncRelayCommand(
+            EmailEntwurfOeffnenAsync,
+            () => AusgewaehlteRechnung?.KannEmailEntwurfOeffnen == true && !IstBeschaeftigt);
     }
 
     public ObservableCollection<RechnungsListenEintragViewModel> Rechnungen { get; } = [];
@@ -61,6 +95,10 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
     public ICommand LoeschenCommand => _loeschenCommand;
     public ICommand FilterAnwendenCommand { get; }
     public ICommand StatusAendernCommand => _statusAendernCommand;
+    public ICommand PdfErstellenAktualisierenCommand => _pdfErstellenAktualisierenCommand;
+    public ICommand PdfOeffnenCommand => _pdfOeffnenCommand;
+    public ICommand ImExplorerAnzeigenCommand => _imExplorerAnzeigenCommand;
+    public ICommand EmailEntwurfOeffnenCommand => _emailEntwurfOeffnenCommand;
 
     public Func<Task>? NeueRechnungAngefordertAsync { get; set; }
     public Func<int, Task>? BearbeitungAngefordertAsync { get; set; }
@@ -131,21 +169,16 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
 
     public async Task LadeRechnungenAsync()
     {
+        if (IstBeschaeftigt)
+        {
+            return;
+        }
+
         IstBeschaeftigt = true;
         Fehlermeldung = string.Empty;
         try
         {
-            var rechnungen = await _rechnungService.GetAllAsync(AusgewaehlterFilter.Wert);
-            Rechnungen.Clear();
-            foreach (var rechnung in rechnungen)
-            {
-                Rechnungen.Add(new RechnungsListenEintragViewModel(rechnung));
-            }
-
-            AusgewaehlteRechnung = null;
-            Statusmeldung = Rechnungen.Count == 1
-                ? "1 Rechnung angezeigt"
-                : $"{Rechnungen.Count} Rechnungen angezeigt";
+            await LadeRechnungenKernAsync(auswahlId: null);
         }
         catch (Exception ex)
         {
@@ -164,7 +197,7 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
     {
         var rechnung = AusgewaehlteRechnung;
         var status = AusgewaehlterNeuerStatus?.Wert;
-        if (rechnung is null || status is null)
+        if (rechnung is null || status is null || IstBeschaeftigt)
         {
             return;
         }
@@ -174,7 +207,7 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
         try
         {
             await _rechnungService.StatusAendernAsync(rechnung.Id, status);
-            await LadeRechnungenAsync();
+            await LadeRechnungenKernAsync(rechnung.Id);
             Statusmeldung = $"Der Status wurde auf „{RechnungsStatus.GetAnzeigename(status)}“ gesetzt.";
         }
         catch (RechnungValidationException ex)
@@ -192,6 +225,179 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
         {
             IstBeschaeftigt = false;
         }
+    }
+
+    public async Task PdfErstellenAktualisierenAsync()
+    {
+        var rechnung = AusgewaehlteRechnung;
+        if (rechnung?.KannPdfErstellen != true || IstBeschaeftigt)
+        {
+            return;
+        }
+
+        var warBereitsVerknuepft = rechnung.HatPdfVerknuepfung;
+        IstBeschaeftigt = true;
+        Fehlermeldung = string.Empty;
+        try
+        {
+            await _rechnungsPdfService.ErzeugeAsync(rechnung.Id);
+            await LadeRechnungenKernAsync(rechnung.Id);
+            Statusmeldung = warBereitsVerknuepft
+                ? $"Die PDF für Rechnung {rechnung.Nummer} wurde aktualisiert."
+                : $"Die PDF für Rechnung {rechnung.Nummer} wurde erstellt.";
+        }
+        catch (Exception ex)
+        {
+            Fehlermeldung = "Die Rechnungs-PDF konnte nicht erstellt werden.";
+            _dialogService.ShowError(
+                $"{Fehlermeldung}\n\n{ex.Message}",
+                "PDF erstellen");
+        }
+        finally
+        {
+            IstBeschaeftigt = false;
+        }
+    }
+
+    public void PdfOeffnen()
+    {
+        var rechnung = AusgewaehlteRechnung;
+        if (rechnung?.KannPdfOeffnen != true
+            || rechnung.PdfVollstaendigerPfad is null
+            || IstBeschaeftigt)
+        {
+            return;
+        }
+
+        Fehlermeldung = string.Empty;
+        try
+        {
+            _dateiOeffner.Oeffne(rechnung.PdfVollstaendigerPfad);
+        }
+        catch (Exception ex)
+        {
+            Fehlermeldung = "Die PDF konnte nicht geöffnet werden.";
+            _dialogService.ShowError($"{Fehlermeldung}\n\n{ex.Message}", "PDF öffnen");
+        }
+    }
+
+    public void ImExplorerAnzeigen()
+    {
+        var rechnung = AusgewaehlteRechnung;
+        if (rechnung?.KannImExplorerAnzeigen != true
+            || rechnung.PdfVollstaendigerPfad is null
+            || IstBeschaeftigt)
+        {
+            return;
+        }
+
+        Fehlermeldung = string.Empty;
+        try
+        {
+            _dateiOeffner.ImExplorerAnzeigen(rechnung.PdfVollstaendigerPfad);
+        }
+        catch (Exception ex)
+        {
+            Fehlermeldung = "Die PDF konnte im Explorer nicht angezeigt werden.";
+            _dialogService.ShowError(
+                $"{Fehlermeldung}\n\n{ex.Message}",
+                "Im Explorer anzeigen");
+        }
+    }
+
+    public async Task EmailEntwurfOeffnenAsync()
+    {
+        var listenEintrag = AusgewaehlteRechnung;
+        if (listenEintrag?.KannEmailEntwurfOeffnen != true
+            || listenEintrag.PdfVollstaendigerPfad is null
+            || IstBeschaeftigt)
+        {
+            return;
+        }
+
+        IstBeschaeftigt = true;
+        Fehlermeldung = string.Empty;
+        try
+        {
+            var rechnung = await _rechnungService.GetByIdAsync(listenEintrag.Id)
+                ?? throw new InvalidOperationException(
+                    $"Die Rechnung mit der ID {listenEintrag.Id} wurde nicht gefunden.");
+            var aktuellerPdfPfad = ErmittleAktuellenPdfPfad(rechnung);
+            var entwurf = _emailEntwurfComposer.Erstelle(rechnung, aktuellerPdfPfad);
+            var ergebnis = _emailEntwurfService.Oeffne(entwurf);
+
+            switch (ergebnis.Status)
+            {
+                case EmailEntwurfErgebnisStatus.MitAnhangGeoeffnet:
+                    Statusmeldung = "Der E-Mail-Entwurf wurde in klassischem Outlook mit PDF-Anhang geöffnet.";
+                    break;
+                case EmailEntwurfErgebnisStatus.OhneAnhangAngefordert:
+                    Statusmeldung = "Der Standard-E-Mail-Client wurde ohne PDF-Anhang vorbereitet.";
+                    _dialogService.ShowInfo(
+                        "Der Standard-E-Mail-Client wurde ohne Anhang vorbereitet. "
+                        + "Bitte hängen Sie die PDF manuell an. Die PDF wird jetzt im Explorer angezeigt.",
+                        "E-Mail-Entwurf");
+                    ZeigeFallbackPdfImExplorer(aktuellerPdfPfad);
+                    break;
+                case EmailEntwurfErgebnisStatus.Abgebrochen:
+                    Statusmeldung = "Das Öffnen des E-Mail-Entwurfs wurde abgebrochen.";
+                    break;
+                default:
+                    Fehlermeldung = ergebnis.Fehlermeldung
+                        ?? "Der E-Mail-Entwurf konnte nicht geöffnet werden.";
+                    _dialogService.ShowError(Fehlermeldung, "E-Mail-Entwurf öffnen");
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Fehlermeldung = "Der E-Mail-Entwurf konnte nicht geöffnet werden.";
+            _dialogService.ShowError(
+                $"{Fehlermeldung}\n\n{ex.Message}",
+                "E-Mail-Entwurf öffnen");
+        }
+        finally
+        {
+            IstBeschaeftigt = false;
+        }
+    }
+
+    private string ErmittleAktuellenPdfPfad(Rechnung rechnung)
+    {
+        var verknuepfung = rechnung.PdfVerknuepfung
+            ?? throw new InvalidOperationException(
+                "Die Rechnung besitzt keine PDF-Verknüpfung mehr. Laden Sie die Übersicht neu.");
+
+        if (verknuepfung.RechnungsstandAm != rechnung.GeaendertAm)
+        {
+            throw new InvalidOperationException(
+                "Die Rechnung wurde seit der PDF-Erstellung geändert. Erstellen Sie die PDF erneut.");
+        }
+
+        if (!_pdfAblage.Existiert(verknuepfung.RelativerPfad))
+        {
+            throw new InvalidOperationException(
+                "Die aktuelle Rechnungs-PDF wurde nicht gefunden. Erstellen Sie die PDF erneut.");
+        }
+
+        return _pdfAblage.LoeseVollstaendigenPfadAuf(verknuepfung.RelativerPfad);
+    }
+
+    private async Task LadeRechnungenKernAsync(int? auswahlId)
+    {
+        var rechnungen = await _rechnungService.GetAllAsync(AusgewaehlterFilter.Wert);
+        Rechnungen.Clear();
+        foreach (var rechnung in rechnungen)
+        {
+            Rechnungen.Add(new RechnungsListenEintragViewModel(rechnung, _pdfAblage));
+        }
+
+        AusgewaehlteRechnung = auswahlId is null
+            ? null
+            : Rechnungen.FirstOrDefault(eintrag => eintrag.Id == auswahlId.Value);
+        Statusmeldung = Rechnungen.Count == 1
+            ? "1 Rechnung angezeigt"
+            : $"{Rechnungen.Count} Rechnungen angezeigt";
     }
 
     private async Task NeueRechnungAnfordernAsync()
@@ -213,13 +419,17 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
     private async Task LoeschenAsync()
     {
         var rechnung = AusgewaehlteRechnung;
-        if (rechnung is null)
+        if (rechnung is null || IstBeschaeftigt)
         {
             return;
         }
 
+        string pdfHinweis = rechnung.HatPdfVerknuepfung
+            ? "\n\nACHTUNG: Die zugehörige PDF-Datei wird ebenfalls unwiderruflich gelöscht."
+            : string.Empty;
+
         if (!_dialogService.Confirm(
-                $"Soll die Rechnung „{rechnung.Nummer}“ wirklich gelöscht werden?",
+                $"Soll die Rechnung \"{rechnung.Nummer}\" wirklich gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.{pdfHinweis}",
                 "Rechnung löschen"))
         {
             return;
@@ -230,7 +440,7 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
         try
         {
             await _rechnungService.DeleteAsync(rechnung.Id);
-            await LadeRechnungenAsync();
+            await LadeRechnungenKernAsync(auswahlId: null);
             Statusmeldung = $"Rechnung {rechnung.Nummer} wurde gelöscht.";
         }
         catch (Exception ex)
@@ -246,6 +456,20 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
         }
     }
 
+    private void ZeigeFallbackPdfImExplorer(string pdfPfad)
+    {
+        try
+        {
+            _dateiOeffner.ImExplorerAnzeigen(pdfPfad);
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError(
+                $"Die PDF konnte nicht im Explorer angezeigt werden.\n\n{ex.Message}",
+                "PDF manuell anhängen");
+        }
+    }
+
     private void AktualisiereCommandStatus()
     {
         (NeuCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
@@ -253,5 +477,9 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
         _loeschenCommand.RaiseCanExecuteChanged();
         (FilterAnwendenCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
         _statusAendernCommand.RaiseCanExecuteChanged();
+        _pdfErstellenAktualisierenCommand.RaiseCanExecuteChanged();
+        _pdfOeffnenCommand.RaiseCanExecuteChanged();
+        _imExplorerAnzeigenCommand.RaiseCanExecuteChanged();
+        _emailEntwurfOeffnenCommand.RaiseCanExecuteChanged();
     }
 }

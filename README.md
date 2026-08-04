@@ -22,15 +22,18 @@ Eine Windows-Desktop-Anwendung zur Erstellung und Verwaltung elektronischer Rech
 - Rechnungserstellung mit flexiblen Positionen und Live-Summen
 - automatische jährliche Rechnungsnummern
 - Rechnungsübersicht mit Statusänderung und Statusfilter
-- historische Stammdaten-Snapshots pro Rechnung
-- automatisierte Build-, Unit-, ViewModel- und SQLite-Integrationstests
+- historische Stammdaten-Snapshots pro Rechnung einschließlich Logo
+- Leistungs-/Veranstaltungsdatum im Rechnungseditor
+- PDF/A-3B-Ausgabe mit deutschem Rechnungsformat, Steuergruppen und Mehrseitenlayout
+- versionierte lokale PDF-Ablage mit Statusanzeige, Öffnen und Anzeige im Explorer
+- interaktive E-Mail-Entwürfe: mit PDF-Anhang in klassischem Outlook oder sicherer `mailto:`-Fallback ohne Anhang
+- automatisierte Build-, Unit-, ViewModel-, SQLite-Integrations- und PDF-Smoke-Tests
 
 ### Geplant
 
-- PDF-Ausgabe
 - EN-16931-konformer XML-Export und -Import
 - Factur-X/ZUGFeRD und XRechnung
-- Outlook-Integration
+- Vorlagen und Einstellungen
 - Backup, Wiederherstellung und automatische Updates
 
 ---
@@ -55,7 +58,7 @@ Eine installationsfreie, selbstenthaltende Windows-Version wird in einem später
 | UI                | WPF (Desktop)      |
 | Datenbank         | SQLite             |
 | PDF               | QuestPDF           |
-| XML (E-Rechnung)  | UBL 2.2 / Factur-X |
+| XML (E-Rechnung)  | UBL 2.2 / CII (M5) |
 
 ---
 
@@ -84,8 +87,14 @@ dotnet build E-Rechnung-SD.sln --configuration Release
 # Tests ausführen
 dotnet test E-Rechnung-SD.sln --configuration Release --no-build
 
-# Veröffentlichen (Self-Contained, SingleFile)
-dotnet publish -c Release -r win-x64 --self-contained
+# Synthetische M4-PDFs erzeugen (Ausgabe nur unter local-input/)
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-M4PdfGeneration.ps1
+
+# PDF-Erzeugung als Self-Contained win-x64 prüfen
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Test-M4PdfGeneration.ps1 -SelfContained
+
+# Anwendung veröffentlichen (Self-Contained, SingleFile)
+dotnet publish src/ERechnung.App/ERechnung.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
 ```
 
 ### Projektstruktur

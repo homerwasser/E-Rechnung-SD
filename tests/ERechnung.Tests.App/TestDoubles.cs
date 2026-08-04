@@ -1,4 +1,7 @@
+using System.Diagnostics;
+using System.IO;
 using ERechnung.App.Services;
+using ERechnung.App.ViewModels;
 using ERechnung.Core.Models;
 using ERechnung.Core.Services;
 
@@ -41,6 +44,7 @@ internal sealed class StubRechnungRepository : IRechnungRepository
     public string? LetzterStatusFilter { get; private set; }
     public int CreateAufrufe { get; private set; }
     public int UpdateAufrufe { get; private set; }
+    public int SetPdfAufrufe { get; private set; }
 
     public Task<IReadOnlyList<RechnungsUebersicht>> GetAllAsync(string? status = null)
     {
@@ -56,7 +60,11 @@ internal sealed class StubRechnungRepository : IRechnungRepository
                     ?? rechnung.Kunde?.Firmenname
                     ?? string.Empty,
                 GesamtbetragBrutto = rechnung.GesamtbetragBrutto,
-                Status = rechnung.Status
+                Status = rechnung.Status,
+                GeaendertAm = rechnung.GeaendertAm,
+                PdfRelativerPfad = rechnung.PdfVerknuepfung?.RelativerPfad,
+                PdfErstelltAm = rechnung.PdfVerknuepfung?.ErstelltAm,
+                PdfRechnungsstandAm = rechnung.PdfVerknuepfung?.RechnungsstandAm
             })
             .ToList();
         return Task.FromResult(result);
@@ -86,10 +94,62 @@ internal sealed class StubRechnungRepository : IRechnungRepository
         return Task.CompletedTask;
     }
 
+    public Task SetPdfVerknuepfungAsync(
+        int id,
+        RechnungsPdfVerknuepfung verknuepfung,
+        DateTime erwartetGeaendertAm,
+        RechnungsPdfVerknuepfung? erwartetePdfVerknuepfung)
+    {
+        SetPdfAufrufe++;
+        var rechnung = _rechnungen.FirstOrDefault(item => item.Id == id)
+            ?? throw new InvalidOperationException("Die Rechnung wurde nicht gefunden.");
+        if (rechnung.GeaendertAm != erwartetGeaendertAm
+            || !PdfVerknuepfungenSindGleich(
+                rechnung.PdfVerknuepfung,
+                erwartetePdfVerknuepfung))
+        {
+            throw new InvalidOperationException("Der Rechnungsstand wurde zwischenzeitlich geändert.");
+        }
+
+        rechnung.PdfVerknuepfung = verknuepfung;
+        return Task.CompletedTask;
+    }
+
     public Task DeleteAsync(int id)
     {
         _rechnungen.RemoveAll(rechnung => rechnung.Id == id);
         return Task.CompletedTask;
+    }
+
+    public Task DeleteIfUnchangedAsync(
+        int id,
+        DateTime erwartetGeaendertAm,
+        RechnungsPdfVerknuepfung? erwartetePdfVerknuepfung)
+    {
+        var rechnung = _rechnungen.FirstOrDefault(item => item.Id == id)
+            ?? throw new InvalidOperationException("Die Rechnung wurde nicht gefunden.");
+        if (rechnung.GeaendertAm != erwartetGeaendertAm
+            || !PdfVerknuepfungenSindGleich(
+                rechnung.PdfVerknuepfung,
+                erwartetePdfVerknuepfung))
+        {
+            throw new InvalidOperationException("Der Rechnungsstand wurde zwischenzeitlich geändert.");
+        }
+
+        _rechnungen.Remove(rechnung);
+        return Task.CompletedTask;
+    }
+
+    private static bool PdfVerknuepfungenSindGleich(
+        RechnungsPdfVerknuepfung? links,
+        RechnungsPdfVerknuepfung? rechts)
+    {
+        return ReferenceEquals(links, rechts)
+               || links is not null
+               && rechts is not null
+               && links.RelativerPfad == rechts.RelativerPfad
+               && links.ErstelltAm == rechts.ErstelltAm
+               && links.RechnungsstandAm == rechts.RechnungsstandAm;
     }
 }
 
@@ -97,6 +157,7 @@ internal sealed class StubDialogService : IUserDialogService
 {
     public bool Bestaetigen { get; set; } = true;
     public List<(string Message, string Title)> Bestaetigungen { get; } = [];
+    public List<(string Message, string Title)> Informationen { get; } = [];
     public List<(string Message, string Title)> Fehler { get; } = [];
 
     public bool Confirm(string message, string title)
@@ -105,7 +166,196 @@ internal sealed class StubDialogService : IUserDialogService
         return Bestaetigen;
     }
 
+    public void ShowInfo(string message, string title) => Informationen.Add((message, title));
+
     public void ShowError(string message, string title) => Fehler.Add((message, title));
+}
+
+internal sealed class TempTestVerzeichnis : IDisposable
+{
+    public TempTestVerzeichnis()
+    {
+        Pfad = Path.Combine(
+            Path.GetTempPath(),
+            "ERechnung-Tests-App",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Pfad);
+    }
+
+    public string Pfad { get; }
+
+    public string ErstelleDatei(string dateiname, ReadOnlySpan<byte> inhalt)
+    {
+        var dateiPfad = Path.Combine(Pfad, dateiname);
+        File.WriteAllBytes(dateiPfad, inhalt.ToArray());
+        return dateiPfad;
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(Pfad))
+        {
+            Directory.Delete(Pfad, recursive: true);
+        }
+    }
+}
+
+internal sealed class StubPdfGenerator : IRechnungsPdfGenerator
+{
+    public int Aufrufe { get; private set; }
+
+    public byte[] Erzeuge(Rechnung rechnung, DateTimeOffset erzeugtAm)
+    {
+        Aufrufe++;
+        return "%PDF-synthetisch"u8.ToArray();
+    }
+}
+
+internal sealed class StubPdfAblage : IRechnungsPdfAblage, IDisposable
+{
+    private readonly string _basisPfad = Path.Combine(
+        Path.GetTempPath(),
+        "ERechnung-Tests-App",
+        Guid.NewGuid().ToString("N"));
+
+    public int SpeicherAufrufe { get; private set; }
+
+    public async Task<string> SpeichereAsync(
+        Rechnung rechnung,
+        ReadOnlyMemory<byte> pdfInhalt,
+        CancellationToken cancellationToken)
+    {
+        SpeicherAufrufe++;
+        var relativerPfad = $"{rechnung.Rechnungsdatum:yyyy}/rechnung-{rechnung.Id}.pdf";
+        var vollstaendigerPfad = LoeseVollstaendigenPfadAuf(relativerPfad);
+        Directory.CreateDirectory(Path.GetDirectoryName(vollstaendigerPfad)!);
+        await File.WriteAllBytesAsync(vollstaendigerPfad, pdfInhalt.ToArray(), cancellationToken);
+        return relativerPfad;
+    }
+
+    public bool Existiert(string relativerPfad) => File.Exists(LoeseVollstaendigenPfadAuf(relativerPfad));
+
+    public string LoeseVollstaendigenPfadAuf(string relativerPfad)
+    {
+        if (string.IsNullOrWhiteSpace(relativerPfad) || Path.IsPathFullyQualified(relativerPfad))
+        {
+            throw new ArgumentException("Der Pfad muss relativ sein.", nameof(relativerPfad));
+        }
+
+        var vollstaendigerPfad = Path.GetFullPath(
+            Path.Combine(_basisPfad, relativerPfad.Replace('/', Path.DirectorySeparatorChar)));
+        var basisPrefix = Path.GetFullPath(_basisPfad) + Path.DirectorySeparatorChar;
+        if (!vollstaendigerPfad.StartsWith(basisPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Der Pfad verlässt die Testablage.", nameof(relativerPfad));
+        }
+
+        return vollstaendigerPfad;
+    }
+
+    public Task LoescheAsync(string relativerPfad, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        File.Delete(LoeseVollstaendigenPfadAuf(relativerPfad));
+        return Task.CompletedTask;
+    }
+
+    public void FuegePdfHinzu(string relativerPfad)
+    {
+        var vollstaendigerPfad = LoeseVollstaendigenPfadAuf(relativerPfad);
+        Directory.CreateDirectory(Path.GetDirectoryName(vollstaendigerPfad)!);
+        File.WriteAllBytes(vollstaendigerPfad, "%PDF-synthetisch"u8.ToArray());
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_basisPfad))
+        {
+            Directory.Delete(_basisPfad, recursive: true);
+        }
+    }
+}
+
+internal sealed class StubDateiOeffner : IDateiOeffner
+{
+    public List<string> GeoeffneteDateien { get; } = [];
+    public List<string> ImExplorerAngezeigteDateien { get; } = [];
+
+    public void Oeffne(string dateiPfad) => GeoeffneteDateien.Add(dateiPfad);
+
+    public void ImExplorerAnzeigen(string dateiPfad) => ImExplorerAngezeigteDateien.Add(dateiPfad);
+}
+
+internal sealed class StubEmailEntwurfService : IEmailEntwurfService
+{
+    public EmailEntwurfErgebnis Ergebnis { get; set; } = new(
+        EmailEntwurfErgebnisStatus.MitAnhangGeoeffnet);
+    public List<EmailEntwurf> Entwuerfe { get; } = [];
+
+    public EmailEntwurfErgebnis Oeffne(EmailEntwurf entwurf)
+    {
+        Entwuerfe.Add(entwurf);
+        return Ergebnis;
+    }
+}
+
+internal sealed class StubClassicOutlookOeffner : IClassicOutlookEntwurfOeffner
+{
+    public EmailOeffnungsversuch Ergebnis { get; set; } = EmailOeffnungsversuch.NichtVerfuegbar;
+    public int Aufrufe { get; private set; }
+
+    public EmailOeffnungsversuch Oeffne(EmailEntwurf entwurf)
+    {
+        Aufrufe++;
+        return Ergebnis;
+    }
+}
+
+internal sealed class StubMailtoOeffner : IMailtoEntwurfOeffner
+{
+    public EmailOeffnungsversuch Ergebnis { get; set; } = EmailOeffnungsversuch.Geoeffnet;
+    public int Aufrufe { get; private set; }
+    public Uri? LetzteUri { get; private set; }
+
+    public EmailOeffnungsversuch Oeffne(Uri mailtoUri)
+    {
+        Aufrufe++;
+        LetzteUri = mailtoUri;
+        return Ergebnis;
+    }
+}
+
+internal sealed class StubProzessStarter : IProzessStarter
+{
+    public List<ProcessStartInfo> Aufrufe { get; } = [];
+
+    public void Starte(ProcessStartInfo startInfo) => Aufrufe.Add(startInfo);
+}
+
+internal static class TestViewModelFactory
+{
+    public static RechnungsUebersichtViewModel ErstelleUebersicht(
+        StubRechnungRepository repository,
+        StubDialogService? dialogService = null,
+        IRechnungsPdfAblage? pdfAblage = null,
+        StubPdfGenerator? pdfGenerator = null,
+        StubDateiOeffner? dateiOeffner = null,
+        StubEmailEntwurfService? emailService = null)
+    {
+        dialogService ??= new StubDialogService();
+        pdfAblage ??= new StubPdfAblage();
+        pdfGenerator ??= new StubPdfGenerator();
+        dateiOeffner ??= new StubDateiOeffner();
+        emailService ??= new StubEmailEntwurfService();
+        return new RechnungsUebersichtViewModel(
+            new RechnungService(repository, pdfAblage: pdfAblage),
+            new RechnungsPdfService(repository, pdfGenerator, pdfAblage),
+            pdfAblage,
+            dateiOeffner,
+            new EmailEntwurfComposer(),
+            emailService,
+            dialogService);
+    }
 }
 
 internal static class TestData
@@ -148,6 +398,7 @@ internal static class TestData
             Nummer = "2026-001",
             Titel = "Testrechnung",
             Rechnungsdatum = new DateTime(2026, 8, 1),
+            Leistungsdatum = new DateTime(2026, 7, 31),
             Faeligkeitsdatum = new DateTime(2026, 8, 15),
             KundeId = kunde.Id,
             FirmaProfilId = profil.Id,
@@ -157,13 +408,15 @@ internal static class TestData
             {
                 QuellId = kunde.Id!.Value,
                 Name = kunde.Firmenname,
-                Land = kunde.Land
+                Land = kunde.Land,
+                Email = kunde.Email
             },
             AbsenderSnapshot = new RechnungsAbsenderSnapshot
             {
                 QuellId = profil.Id!.Value,
                 Name = profil.Name,
-                Land = profil.Land
+                Land = profil.Land,
+                Email = profil.Email
             },
             Positionen =
             [

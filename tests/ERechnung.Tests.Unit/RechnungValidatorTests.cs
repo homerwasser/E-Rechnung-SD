@@ -114,6 +114,37 @@ public sealed class RechnungValidatorTests
     }
 
     [Fact]
+    public void Validate_WithoutServiceDate_ReturnsNoServiceDateError()
+    {
+        var rechnung = CreateValidInvoice();
+        rechnung.Leistungsdatum = null;
+
+        var errors = RechnungValidator.Validate(rechnung);
+
+        Assert.DoesNotContain("Das Leistungsdatum ist ungültig.", errors);
+    }
+
+    [Theory]
+    [InlineData(1899, 12, 31, true)]
+    [InlineData(1900, 1, 1, false)]
+    [InlineData(2026, 8, 3, false)]
+    public void Validate_WithServiceDate_ChecksPlausibility(
+        int jahr,
+        int monat,
+        int tag,
+        bool erwartetFehler)
+    {
+        var rechnung = CreateValidInvoice();
+        rechnung.Leistungsdatum = new DateTime(jahr, monat, tag);
+
+        var errors = RechnungValidator.Validate(rechnung);
+
+        Assert.Equal(
+            erwartetFehler,
+            errors.Contains("Das Leistungsdatum ist ungültig."));
+    }
+
+    [Fact]
     public void Validate_WithInvalidStatus_ReturnsError()
     {
         var rechnung = CreateValidInvoice();

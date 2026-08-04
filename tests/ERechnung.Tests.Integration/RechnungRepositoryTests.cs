@@ -21,6 +21,13 @@ public sealed class RechnungRepositoryTests
         var (kunde, firmaProfil) = await CreateMasterDataAsync(database);
         var repository = new RechnungRepository(database.ConnectionString);
         var rechnung = CreateInvoice(kunde, firmaProfil, new DateTime(2026, 8, 3));
+        rechnung.Leistungsdatum = new DateTime(2026, 8, 2);
+        rechnung.AbsenderSnapshot!.LogoInhalt = [137, 80, 78, 71, 13, 10, 26, 10];
+        rechnung.AbsenderSnapshot.LogoMedientyp = "image/png";
+        rechnung.PdfVerknuepfung = new RechnungsPdfVerknuepfung(
+            "2026/rechnung-1-2026-001-123.pdf",
+            new DateTime(2026, 8, 3, 12, 0, 0, DateTimeKind.Utc),
+            new DateTime(2026, 8, 3, 10, 15, 0, DateTimeKind.Utc));
         rechnung.GeaendertAm = rechnung.ErstelltAm.AddDays(1);
 
         var created = await repository.CreateAsync(rechnung);
@@ -172,6 +179,241 @@ public sealed class RechnungRepositoryTests
         var persisted = Assert.IsType<Rechnung>(
             await repository.GetByIdAsync(created.Id.Value));
         AssertInvoiceEqual(before, persisted);
+    }
+
+    [Fact]
+    public async Task SetPdfVerknuepfungAsync_WithMatchingVersion_SetsLinkWithoutChangingVersion()
+    {
+        using var database = await CreateMigratedDatabaseAsync();
+        var (kunde, firmaProfil) = await CreateMasterDataAsync(database);
+        var repository = new RechnungRepository(database.ConnectionString);
+        var created = await repository.CreateAsync(
+            CreateInvoice(kunde, firmaProfil, new DateTime(2026, 8, 3)));
+        var erwartetGeaendertAm = created.GeaendertAm;
+        var verknuepfung = CreatePdfVerknuepfung(erwartetGeaendertAm);
+
+        await repository.SetPdfVerknuepfungAsync(
+            created.Id!.Value,
+            verknuepfung,
+            erwartetGeaendertAm,
+            erwartetePdfVerknuepfung: null);
+
+        var persisted = Assert.IsType<Rechnung>(
+            await repository.GetByIdAsync(created.Id.Value));
+        Assert.Equal(erwartetGeaendertAm, persisted.GeaendertAm);
+        AssertPdfVerknuepfungEqual(verknuepfung, persisted.PdfVerknuepfung);
+    }
+
+    [Fact]
+    public async Task SetPdfVerknuepfungAsync_WhenInvoiceIsMissing_ReportsNotFound()
+    {
+        using var database = await CreateMigratedDatabaseAsync();
+        var repository = new RechnungRepository(database.ConnectionString);
+        var verknuepfung = CreatePdfVerknuepfung(
+            new DateTime(2026, 8, 3, 10, 0, 0, DateTimeKind.Utc));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => repository.SetPdfVerknuepfungAsync(
+                9876,
+                verknuepfung,
+                verknuepfung.RechnungsstandAm,
+                erwartetePdfVerknuepfung: null));
+
+        Assert.Contains("9876", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("nicht gefunden", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SetPdfVerknuepfungAsync_WithStaleVersion_ReportsConcurrencyConflict()
+    {
+        using var database = await CreateMigratedDatabaseAsync();
+        var (kunde, firmaProfil) = await CreateMasterDataAsync(database);
+        var repository = new RechnungRepository(database.ConnectionString);
+        var created = await repository.CreateAsync(
+            CreateInvoice(kunde, firmaProfil, new DateTime(2026, 8, 3)));
+        var veralteterStand = created.GeaendertAm;
+        var update = Assert.IsType<Rechnung>(
+            await repository.GetByIdAsync(created.Id!.Value));
+        update.Titel = "Zwischenzeitlich geänderte Rechnung";
+        await repository.UpdateAsync(update);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => repository.SetPdfVerknuepfungAsync(
+                created.Id.Value,
+                CreatePdfVerknuepfung(veralteterStand),
+                veralteterStand,
+                erwartetePdfVerknuepfung: null));
+
+        Assert.Contains("zwischenzeitlich geändert", exception.Message, StringComparison.Ordinal);
+        var persisted = Assert.IsType<Rechnung>(
+            await repository.GetByIdAsync(created.Id.Value));
+        Assert.Null(persisted.PdfVerknuepfung);
+        Assert.Equal(update.GeaendertAm, persisted.GeaendertAm);
+    }
+
+    [Fact]
+    public async Task SetPdfVerknuepfungAsync_WithUnexpectedPreviousLink_RejectsConcurrentReplacement()
+    {
+        using var database = await CreateMigratedDatabaseAsync();
+        var (kunde, firmaProfil) = await CreateMasterDataAsync(database);
+        var repository = new RechnungRepository(database.ConnectionString);
+        var created = await repository.CreateAsync(
+            CreateInvoice(kunde, firmaProfil, new DateTime(2026, 8, 3)));
+        var ersteVerknuepfung = CreatePdfVerknuepfung(
+            created.GeaendertAm,
+            "2026/rechnung-erste.pdf");
+        var konkurrierendeVerknuepfung = CreatePdfVerknuepfung(
+            created.GeaendertAm,
+            "2026/rechnung-konkurrierend.pdf");
+        await repository.SetPdfVerknuepfungAsync(
+            created.Id!.Value,
+            ersteVerknuepfung,
+            created.GeaendertAm,
+            erwartetePdfVerknuepfung: null);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => repository.SetPdfVerknuepfungAsync(
+                created.Id.Value,
+                konkurrierendeVerknuepfung,
+                created.GeaendertAm,
+                erwartetePdfVerknuepfung: null));
+
+        Assert.Contains("PDF-Verknüpfung", exception.Message, StringComparison.Ordinal);
+        var persisted = Assert.IsType<Rechnung>(
+            await repository.GetByIdAsync(created.Id.Value));
+        AssertPdfVerknuepfungEqual(ersteVerknuepfung, persisted.PdfVerknuepfung);
+
+        await repository.SetPdfVerknuepfungAsync(
+            created.Id.Value,
+            konkurrierendeVerknuepfung,
+            created.GeaendertAm,
+            ersteVerknuepfung);
+        persisted = Assert.IsType<Rechnung>(await repository.GetByIdAsync(created.Id.Value));
+        AssertPdfVerknuepfungEqual(konkurrierendeVerknuepfung, persisted.PdfVerknuepfung);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithPdfLink_PreservesLinkAndMakesItsInvoiceVersionStale()
+    {
+        using var database = await CreateMigratedDatabaseAsync();
+        var (kunde, firmaProfil) = await CreateMasterDataAsync(database);
+        var repository = new RechnungRepository(database.ConnectionString);
+        var created = await repository.CreateAsync(
+            CreateInvoice(kunde, firmaProfil, new DateTime(2026, 8, 3)));
+        var verknuepfung = CreatePdfVerknuepfung(created.GeaendertAm);
+        await repository.SetPdfVerknuepfungAsync(
+            created.Id!.Value,
+            verknuepfung,
+            created.GeaendertAm,
+            erwartetePdfVerknuepfung: null);
+        var update = Assert.IsType<Rechnung>(
+            await repository.GetByIdAsync(created.Id.Value));
+
+        update.Titel = "Rechnung nach PDF-Erstellung geändert";
+        update.Leistungsdatum = new DateTime(2026, 8, 4);
+        update.AbsenderSnapshot!.LogoInhalt = [82, 73, 70, 70];
+        update.AbsenderSnapshot.LogoMedientyp = "image/webp";
+        await repository.UpdateAsync(update);
+
+        var persisted = Assert.IsType<Rechnung>(
+            await repository.GetByIdAsync(created.Id.Value));
+        Assert.True(persisted.GeaendertAm > verknuepfung.RechnungsstandAm);
+        Assert.Equal(new DateTime(2026, 8, 4), persisted.Leistungsdatum);
+        Assert.Equal([82, 73, 70, 70], persisted.AbsenderSnapshot!.LogoInhalt);
+        Assert.Equal("image/webp", persisted.AbsenderSnapshot.LogoMedientyp);
+        AssertPdfVerknuepfungEqual(verknuepfung, persisted.PdfVerknuepfung);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_AfterConcurrentPdfLink_PreservesNewLinkAndMarksItStale()
+    {
+        using var database = await CreateMigratedDatabaseAsync();
+        var (kunde, firmaProfil) = await CreateMasterDataAsync(database);
+        var repository = new RechnungRepository(database.ConnectionString);
+        var created = await repository.CreateAsync(
+            CreateInvoice(kunde, firmaProfil, new DateTime(2026, 8, 3)));
+        var veralteterEditorstand = Assert.IsType<Rechnung>(
+            await repository.GetByIdAsync(created.Id!.Value));
+        var verknuepfung = CreatePdfVerknuepfung(veralteterEditorstand.GeaendertAm);
+
+        await repository.SetPdfVerknuepfungAsync(
+            created.Id.Value,
+            verknuepfung,
+            veralteterEditorstand.GeaendertAm,
+            erwartetePdfVerknuepfung: null);
+        veralteterEditorstand.Titel = "In einem bereits geöffneten Editor geändert";
+        await repository.UpdateAsync(veralteterEditorstand);
+
+        var persisted = Assert.IsType<Rechnung>(
+            await repository.GetByIdAsync(created.Id.Value));
+        Assert.Equal(veralteterEditorstand.Titel, persisted.Titel);
+        Assert.True(persisted.GeaendertAm > verknuepfung.RechnungsstandAm);
+        AssertPdfVerknuepfungEqual(verknuepfung, persisted.PdfVerknuepfung);
+    }
+
+    [Fact]
+    public async Task GetByIdAsync_WithPartialPdfMetadata_ReportsInconsistentStoredData()
+    {
+        using var database = await CreateMigratedDatabaseAsync();
+        var (kunde, firmaProfil) = await CreateMasterDataAsync(database);
+        var repository = new RechnungRepository(database.ConnectionString);
+        var created = await repository.CreateAsync(
+            CreateInvoice(kunde, firmaProfil, new DateTime(2026, 8, 3)));
+        await using (var connection = await database.OpenConnectionAsync())
+        await using (var command = connection.CreateCommand())
+        {
+            command.CommandText = """
+                UPDATE tbl_Rechnung
+                SET PdfRelativerPfad = '2026/manipuliert.pdf'
+                WHERE Id = @Id;
+                """;
+            command.Parameters.AddWithValue("@Id", created.Id!.Value);
+            await command.ExecuteNonQueryAsync();
+        }
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => repository.GetByIdAsync(created.Id!.Value));
+
+        Assert.Contains("PDF-Metadaten", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("inkonsistent", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(created.Id.Value.ToString(), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DeleteIfUnchangedAsync_WithChangedPdfLink_PreservesInvoice()
+    {
+        using var database = await CreateMigratedDatabaseAsync();
+        var (kunde, firmaProfil) = await CreateMasterDataAsync(database);
+        var repository = new RechnungRepository(database.ConnectionString);
+        var created = await repository.CreateAsync(
+            CreateInvoice(kunde, firmaProfil, new DateTime(2026, 8, 3)));
+        var alteVerknuepfung = CreatePdfVerknuepfung(
+            created.GeaendertAm,
+            "2026/rechnung-alt.pdf");
+        var neueVerknuepfung = CreatePdfVerknuepfung(
+            created.GeaendertAm,
+            "2026/rechnung-neu.pdf");
+        await repository.SetPdfVerknuepfungAsync(
+            created.Id!.Value,
+            alteVerknuepfung,
+            created.GeaendertAm,
+            erwartetePdfVerknuepfung: null);
+        await repository.SetPdfVerknuepfungAsync(
+            created.Id.Value,
+            neueVerknuepfung,
+            created.GeaendertAm,
+            alteVerknuepfung);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => repository.DeleteIfUnchangedAsync(
+                created.Id.Value,
+                created.GeaendertAm,
+                alteVerknuepfung));
+
+        Assert.Contains("zwischenzeitlich geändert", exception.Message, StringComparison.Ordinal);
+        var persisted = Assert.IsType<Rechnung>(
+            await repository.GetByIdAsync(created.Id.Value));
+        AssertPdfVerknuepfungEqual(neueVerknuepfung, persisted.PdfVerknuepfung);
     }
 
     [Fact]
@@ -351,6 +593,14 @@ public sealed class RechnungRepositoryTests
         await repository.CreateAsync(oldPaid);
         await repository.CreateAsync(newOpen);
         await repository.CreateAsync(newPaid);
+        var pdfVerknuepfung = CreatePdfVerknuepfung(
+            newPaid.GeaendertAm,
+            "2026/rechnung-3-2026-002.pdf");
+        await repository.SetPdfVerknuepfungAsync(
+            newPaid.Id!.Value,
+            pdfVerknuepfung,
+            newPaid.GeaendertAm,
+            erwartetePdfVerknuepfung: null);
 
         var all = await repository.GetAllAsync();
         var paid = await repository.GetAllAsync(RechnungsStatus.Bezahlt);
@@ -363,6 +613,20 @@ public sealed class RechnungRepositoryTests
             paid.Select(rechnung => (int?)rechnung.Id));
         Assert.All(paid, rechnung => Assert.Equal(RechnungsStatus.Bezahlt, rechnung.Status));
         Assert.All(all, rechnung => Assert.Equal("Synthetischer Kunde GmbH", rechnung.KundeName));
+        Assert.All(all, rechnung => Assert.NotEqual(default, rechnung.GeaendertAm));
+        var newPaidOverview = Assert.Single(all, rechnung => rechnung.Id == newPaid.Id);
+        Assert.Equal(newPaid.GeaendertAm, newPaidOverview.GeaendertAm);
+        Assert.Equal(pdfVerknuepfung.RelativerPfad, newPaidOverview.PdfRelativerPfad);
+        Assert.Equal(pdfVerknuepfung.ErstelltAm, newPaidOverview.PdfErstelltAm);
+        Assert.Equal(pdfVerknuepfung.RechnungsstandAm, newPaidOverview.PdfRechnungsstandAm);
+        Assert.All(
+            all.Where(rechnung => rechnung.Id != newPaid.Id),
+            rechnung =>
+            {
+                Assert.Null(rechnung.PdfRelativerPfad);
+                Assert.Null(rechnung.PdfErstelltAm);
+                Assert.Null(rechnung.PdfRechnungsstandAm);
+            });
         await Assert.ThrowsAsync<ArgumentException>(() => repository.GetAllAsync("Bezahlt"));
     }
 
@@ -536,6 +800,7 @@ public sealed class RechnungRepositoryTests
         Assert.Equal(expected.Titel, actual.Titel);
         Assert.Equal(expected.Erstellungsdatum, actual.Erstellungsdatum);
         Assert.Equal(expected.Rechnungsdatum, actual.Rechnungsdatum);
+        Assert.Equal(expected.Leistungsdatum, actual.Leistungsdatum);
         Assert.Equal(expected.Faeligkeitsdatum, actual.Faeligkeitsdatum);
         Assert.Equal(expected.KundeId, actual.KundeId);
         Assert.Equal(expected.FirmaProfilId, actual.FirmaProfilId);
@@ -548,6 +813,7 @@ public sealed class RechnungRepositoryTests
         Assert.Equal(expected.Bemerkung, actual.Bemerkung);
         Assert.Equal(expected.ErstelltAm, actual.ErstelltAm);
         Assert.Equal(expected.GeaendertAm, actual.GeaendertAm);
+        AssertPdfVerknuepfungEqual(expected.PdfVerknuepfung, actual.PdfVerknuepfung);
         AssertEmpfaengerSnapshotEqual(expected.EmpfaengerSnapshot!, actual.EmpfaengerSnapshot!);
         AssertAbsenderSnapshotEqual(expected.AbsenderSnapshot!, actual.AbsenderSnapshot!);
         Assert.Equal(expected.Positionen.Count, actual.Positionen.Count);
@@ -579,6 +845,8 @@ public sealed class RechnungRepositoryTests
         Assert.Equal(expected.QuellId, actual.QuellId);
         Assert.Equal(expected.Name, actual.Name);
         Assert.Equal(expected.LogoPfad, actual.LogoPfad);
+        Assert.Equal(expected.LogoInhalt, actual.LogoInhalt);
+        Assert.Equal(expected.LogoMedientyp, actual.LogoMedientyp);
         Assert.Equal(expected.Ansprechpartner, actual.Ansprechpartner);
         Assert.Equal(expected.Strasse, actual.Strasse);
         Assert.Equal(expected.PLZ, actual.PLZ);
@@ -589,6 +857,32 @@ public sealed class RechnungRepositoryTests
         Assert.Equal(expected.UstIdNr, actual.UstIdNr);
         Assert.Equal(expected.IBAN, actual.IBAN);
         Assert.Equal(expected.BIC, actual.BIC);
+    }
+
+    private static RechnungsPdfVerknuepfung CreatePdfVerknuepfung(
+        DateTime rechnungsstandAm,
+        string relativerPfad = "2026/rechnung-1-2026-001.pdf")
+    {
+        return new RechnungsPdfVerknuepfung(
+            relativerPfad,
+            new DateTime(2026, 8, 3, 12, 30, 0, DateTimeKind.Utc),
+            rechnungsstandAm);
+    }
+
+    private static void AssertPdfVerknuepfungEqual(
+        RechnungsPdfVerknuepfung? expected,
+        RechnungsPdfVerknuepfung? actual)
+    {
+        if (expected is null)
+        {
+            Assert.Null(actual);
+            return;
+        }
+
+        var actualValue = Assert.IsType<RechnungsPdfVerknuepfung>(actual);
+        Assert.Equal(expected.RelativerPfad, actualValue.RelativerPfad);
+        Assert.Equal(expected.ErstelltAm, actualValue.ErstelltAm);
+        Assert.Equal(expected.RechnungsstandAm, actualValue.RechnungsstandAm);
     }
 
     private static void AssertPositionEqual(RechnungsPosition expected, RechnungsPosition actual)

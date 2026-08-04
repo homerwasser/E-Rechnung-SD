@@ -11,38 +11,51 @@ public static class RechnungCalculator
     {
         ArgumentNullException.ThrowIfNull(rechnung);
 
-        var nettobetraegeNachSteuersatz = new Dictionary<decimal, decimal>();
-        var gesamtbetragNetto = 0m;
-        var naechsteReihenfolge = 1;
+        var positionen = (rechnung.Positionen ?? [])
+            .Where(position => position is not null)
+            .ToArray();
 
-        foreach (var position in rechnung.Positionen ?? [])
+        for (var index = 0; index < positionen.Length; index++)
         {
-            if (position is null)
-            {
-                continue;
-            }
-
-            position.Reihenfolge = naechsteReihenfolge++;
-
-            var positionsnetto = position.GesamtpreisNetto;
-            gesamtbetragNetto += positionsnetto;
-
-            nettobetraegeNachSteuersatz.TryGetValue(position.Steuersatz, out var gruppennetto);
-            nettobetraegeNachSteuersatz[position.Steuersatz] = gruppennetto + positionsnetto;
+            positionen[index].Reihenfolge = index + 1;
         }
 
-        var umsatzsteuerBetrag = nettobetraegeNachSteuersatz.Sum(gruppe =>
-            RundeGeldbetrag(gruppe.Value * gruppe.Key / 100m));
+        var steuergruppen = BerechneSteuergruppen(positionen);
 
-        rechnung.GesamtbetragNetto = RundeGeldbetrag(gesamtbetragNetto);
-        rechnung.UmsatzsteuerBetrag = RundeGeldbetrag(umsatzsteuerBetrag);
+        rechnung.GesamtbetragNetto = RundeGeldbetrag(
+            steuergruppen.Sum(gruppe => gruppe.Nettobetrag));
+        rechnung.UmsatzsteuerBetrag = RundeGeldbetrag(
+            steuergruppen.Sum(gruppe => gruppe.Steuerbetrag));
         rechnung.GesamtbetragBrutto = RundeGeldbetrag(
             rechnung.GesamtbetragNetto + rechnung.UmsatzsteuerBetrag);
-        rechnung.GesamtsteuerRate = nettobetraegeNachSteuersatz.Count == 1
-            ? nettobetraegeNachSteuersatz.Keys.Single()
+        rechnung.GesamtsteuerRate = steuergruppen.Count == 1
+            ? steuergruppen[0].Steuersatz
             : 0m;
 
         return rechnung;
+    }
+
+    public static IReadOnlyList<RechnungsSteuergruppe> BerechneSteuergruppen(
+        IEnumerable<RechnungsPosition> positionen)
+    {
+        ArgumentNullException.ThrowIfNull(positionen);
+
+        return positionen
+            .Where(position => position is not null)
+            .GroupBy(position => position.Steuersatz)
+            .OrderBy(gruppe => gruppe.Key)
+            .Select(gruppe =>
+            {
+                var nettobetrag = RundeGeldbetrag(
+                    gruppe.Sum(position => position.GesamtpreisNetto));
+                var steuerbetrag = RundeGeldbetrag(nettobetrag * gruppe.Key / 100m);
+
+                return new RechnungsSteuergruppe(
+                    gruppe.Key,
+                    nettobetrag,
+                    steuerbetrag);
+            })
+            .ToArray();
     }
 
     private static decimal RundeGeldbetrag(decimal betrag)

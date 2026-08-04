@@ -31,8 +31,12 @@ public sealed class RechnungRepository : IRechnungRepository
                    Nummer,
                    Rechnungsdatum,
                    EmpfaengerSnapshotName AS KundeName,
-                   GesamtbetragBrutto,
-                   Status
+                   CAST(GesamtbetragBrutto AS REAL) AS GesamtbetragBrutto,
+                   Status,
+                   GeaendertAm,
+                   PdfRelativerPfad,
+                   PdfErstelltAm,
+                   PdfRechnungsstandAm
             FROM tbl_Rechnung
             """;
         var sql = status is null
@@ -62,18 +66,22 @@ public sealed class RechnungRepository : IRechnungRepository
                        Titel,
                        Erstellungsdatum,
                        Rechnungsdatum,
+                       Leistungsdatum,
                        Faelligkeitsdatum AS Faeligkeitsdatum,
                        KundeId,
                        FirmaProfilId,
-                       GesamtbetragNetto,
-                       UmsatzsteuerBetrag,
-                       GesamtsteuerRate,
-                       GesamtbetragBrutto,
+                       CAST(GesamtbetragNetto AS REAL) AS GesamtbetragNetto,
+                       CAST(UmsatzsteuerBetrag AS REAL) AS UmsatzsteuerBetrag,
+                       CAST(GesamtsteuerRate AS REAL) AS GesamtsteuerRate,
+                       CAST(GesamtbetragBrutto AS REAL) AS GesamtbetragBrutto,
                        Waehrung,
                        Status,
                        Bemerkung,
                        ErstelltAm,
                        GeaendertAm,
+                       PdfRelativerPfad,
+                       PdfErstelltAm,
+                       PdfRechnungsstandAm,
                        EmpfaengerSnapshotName,
                        EmpfaengerSnapshotAnsprechpartner,
                        EmpfaengerSnapshotStrasse,
@@ -84,6 +92,8 @@ public sealed class RechnungRepository : IRechnungRepository
                        EmpfaengerSnapshotUstIdNr,
                        AbsenderSnapshotName,
                        AbsenderSnapshotLogoPfad,
+                       AbsenderSnapshotLogoInhalt,
+                       AbsenderSnapshotLogoMedientyp,
                        AbsenderSnapshotAnsprechpartner,
                        AbsenderSnapshotStrasse,
                        AbsenderSnapshotPLZ,
@@ -109,10 +119,10 @@ public sealed class RechnungRepository : IRechnungRepository
                        RechnungId,
                        Reihenfolge,
                        Beschreibung,
-                       Menge,
+                       CAST(Menge AS REAL) AS Menge,
                        Einheit,
-                       EinzelpreisNetto,
-                       Steuersatz
+                       CAST(EinzelpreisNetto AS REAL) AS EinzelpreisNetto,
+                       CAST(Steuersatz AS REAL) AS Steuersatz
                 FROM tbl_RechnungsPosition
                 WHERE RechnungId = @Id
                 ORDER BY Reihenfolge, Id;
@@ -163,6 +173,7 @@ public sealed class RechnungRepository : IRechnungRepository
                     Titel,
                     Erstellungsdatum,
                     Rechnungsdatum,
+                    Leistungsdatum,
                     Faelligkeitsdatum,
                     KundeId,
                     FirmaProfilId,
@@ -175,6 +186,9 @@ public sealed class RechnungRepository : IRechnungRepository
                     Bemerkung,
                     ErstelltAm,
                     GeaendertAm,
+                    PdfRelativerPfad,
+                    PdfErstelltAm,
+                    PdfRechnungsstandAm,
                     EmpfaengerSnapshotName,
                     EmpfaengerSnapshotAnsprechpartner,
                     EmpfaengerSnapshotStrasse,
@@ -185,6 +199,8 @@ public sealed class RechnungRepository : IRechnungRepository
                     EmpfaengerSnapshotUstIdNr,
                     AbsenderSnapshotName,
                     AbsenderSnapshotLogoPfad,
+                    AbsenderSnapshotLogoInhalt,
+                    AbsenderSnapshotLogoMedientyp,
                     AbsenderSnapshotAnsprechpartner,
                     AbsenderSnapshotStrasse,
                     AbsenderSnapshotPLZ,
@@ -201,6 +217,7 @@ public sealed class RechnungRepository : IRechnungRepository
                     @Titel,
                     @Erstellungsdatum,
                     @Rechnungsdatum,
+                    @Leistungsdatum,
                     @Faelligkeitsdatum,
                     @KundeId,
                     @FirmaProfilId,
@@ -213,6 +230,9 @@ public sealed class RechnungRepository : IRechnungRepository
                     @Bemerkung,
                     @ErstelltAm,
                     @GeaendertAm,
+                    @PdfRelativerPfad,
+                    @PdfErstelltAm,
+                    @PdfRechnungsstandAm,
                     @EmpfaengerSnapshotName,
                     @EmpfaengerSnapshotAnsprechpartner,
                     @EmpfaengerSnapshotStrasse,
@@ -223,6 +243,8 @@ public sealed class RechnungRepository : IRechnungRepository
                     @EmpfaengerSnapshotUstIdNr,
                     @AbsenderSnapshotName,
                     @AbsenderSnapshotLogoPfad,
+                    @AbsenderSnapshotLogoInhalt,
+                    @AbsenderSnapshotLogoMedientyp,
                     @AbsenderSnapshotAnsprechpartner,
                     @AbsenderSnapshotStrasse,
                     @AbsenderSnapshotPLZ,
@@ -303,6 +325,7 @@ public sealed class RechnungRepository : IRechnungRepository
                 SET Titel = @Titel,
                     Erstellungsdatum = @Erstellungsdatum,
                     Rechnungsdatum = @Rechnungsdatum,
+                    Leistungsdatum = @Leistungsdatum,
                     Faelligkeitsdatum = @Faelligkeitsdatum,
                     KundeId = @KundeId,
                     FirmaProfilId = @FirmaProfilId,
@@ -324,6 +347,8 @@ public sealed class RechnungRepository : IRechnungRepository
                     EmpfaengerSnapshotUstIdNr = @EmpfaengerSnapshotUstIdNr,
                     AbsenderSnapshotName = @AbsenderSnapshotName,
                     AbsenderSnapshotLogoPfad = @AbsenderSnapshotLogoPfad,
+                    AbsenderSnapshotLogoInhalt = @AbsenderSnapshotLogoInhalt,
+                    AbsenderSnapshotLogoMedientyp = @AbsenderSnapshotLogoMedientyp,
                     AbsenderSnapshotAnsprechpartner = @AbsenderSnapshotAnsprechpartner,
                     AbsenderSnapshotStrasse = @AbsenderSnapshotStrasse,
                     AbsenderSnapshotPLZ = @AbsenderSnapshotPLZ,
@@ -369,6 +394,80 @@ public sealed class RechnungRepository : IRechnungRepository
         }
     }
 
+    public async Task SetPdfVerknuepfungAsync(
+        int id,
+        RechnungsPdfVerknuepfung verknuepfung,
+        DateTime erwartetGeaendertAm,
+        RechnungsPdfVerknuepfung? erwartetePdfVerknuepfung)
+    {
+        ArgumentNullException.ThrowIfNull(verknuepfung);
+
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+        await using var transaction = connection.BeginTransaction(deferred: false);
+
+        try
+        {
+            var affectedRows = await connection.ExecuteAsync("""
+                UPDATE tbl_Rechnung
+                SET PdfRelativerPfad = @PdfRelativerPfad,
+                    PdfErstelltAm = @PdfErstelltAm,
+                    PdfRechnungsstandAm = @PdfRechnungsstandAm
+                WHERE Id = @Id
+                  AND GeaendertAm = @ErwartetGeaendertAm
+                  AND (
+                      (
+                          @ErwarteterPdfRelativerPfad IS NULL
+                          AND PdfRelativerPfad IS NULL
+                          AND PdfErstelltAm IS NULL
+                          AND PdfRechnungsstandAm IS NULL
+                      )
+                      OR (
+                          PdfRelativerPfad = @ErwarteterPdfRelativerPfad
+                          AND PdfErstelltAm = @ErwartetesPdfErstelltAm
+                          AND PdfRechnungsstandAm = @ErwarteterPdfRechnungsstandAm
+                      )
+                  );
+                """, new
+            {
+                Id = id,
+                PdfRelativerPfad = verknuepfung.RelativerPfad,
+                PdfErstelltAm = verknuepfung.ErstelltAm,
+                PdfRechnungsstandAm = verknuepfung.RechnungsstandAm,
+                ErwartetGeaendertAm = erwartetGeaendertAm,
+                ErwarteterPdfRelativerPfad = erwartetePdfVerknuepfung?.RelativerPfad,
+                ErwartetesPdfErstelltAm = erwartetePdfVerknuepfung?.ErstelltAm,
+                ErwarteterPdfRechnungsstandAm = erwartetePdfVerknuepfung?.RechnungsstandAm
+            }, transaction);
+
+            if (affectedRows != 1)
+            {
+                var istVorhanden = await connection.ExecuteScalarAsync<long>("""
+                    SELECT COUNT(*)
+                    FROM tbl_Rechnung
+                    WHERE Id = @Id;
+                    """, new { Id = id }, transaction) > 0;
+
+                if (!istVorhanden)
+                {
+                    throw new InvalidOperationException(
+                        $"Die Rechnung mit der ID {id} wurde nicht gefunden.");
+                }
+
+                throw new InvalidOperationException(
+                    $"Die Rechnung oder PDF-Verknüpfung mit der ID {id} wurde zwischenzeitlich geändert. "
+                    + "Die neue PDF-Verknüpfung wurde nicht gespeichert.");
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
     public async Task DeleteAsync(int id)
     {
         await using var connection = new SqliteConnection(_connectionString);
@@ -386,6 +485,71 @@ public sealed class RechnungRepository : IRechnungRepository
             {
                 throw new InvalidOperationException(
                     $"Die Rechnung mit der ID {id} wurde nicht gefunden.");
+            }
+
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    public async Task DeleteIfUnchangedAsync(
+        int id,
+        DateTime erwartetGeaendertAm,
+        RechnungsPdfVerknuepfung? erwartetePdfVerknuepfung)
+    {
+        await using var connection = new SqliteConnection(_connectionString);
+        await connection.OpenAsync();
+        await using var transaction = connection.BeginTransaction(deferred: false);
+
+        try
+        {
+            var affectedRows = await connection.ExecuteAsync("""
+                DELETE FROM tbl_Rechnung
+                WHERE Id = @Id
+                  AND GeaendertAm = @ErwartetGeaendertAm
+                  AND (
+                      (
+                          @ErwarteterPdfRelativerPfad IS NULL
+                          AND PdfRelativerPfad IS NULL
+                          AND PdfErstelltAm IS NULL
+                          AND PdfRechnungsstandAm IS NULL
+                      )
+                      OR (
+                          PdfRelativerPfad = @ErwarteterPdfRelativerPfad
+                          AND PdfErstelltAm = @ErwartetesPdfErstelltAm
+                          AND PdfRechnungsstandAm = @ErwarteterPdfRechnungsstandAm
+                      )
+                  );
+                """, new
+            {
+                Id = id,
+                ErwartetGeaendertAm = erwartetGeaendertAm,
+                ErwarteterPdfRelativerPfad = erwartetePdfVerknuepfung?.RelativerPfad,
+                ErwartetesPdfErstelltAm = erwartetePdfVerknuepfung?.ErstelltAm,
+                ErwarteterPdfRechnungsstandAm = erwartetePdfVerknuepfung?.RechnungsstandAm
+            }, transaction);
+
+            if (affectedRows != 1)
+            {
+                var istVorhanden = await connection.ExecuteScalarAsync<long>("""
+                    SELECT COUNT(*)
+                    FROM tbl_Rechnung
+                    WHERE Id = @Id;
+                    """, new { Id = id }, transaction) > 0;
+
+                if (!istVorhanden)
+                {
+                    throw new InvalidOperationException(
+                        $"Die Rechnung mit der ID {id} wurde nicht gefunden.");
+                }
+
+                throw new InvalidOperationException(
+                    $"Die Rechnung oder PDF-Verknüpfung mit der ID {id} wurde zwischenzeitlich geändert. "
+                    + "Die Rechnung wurde nicht gelöscht.");
             }
 
             await transaction.CommitAsync();
@@ -419,6 +583,7 @@ public sealed class RechnungRepository : IRechnungRepository
             ?? throw new ArgumentException(
                 "Der Rechnungsabsender-Snapshot ist erforderlich.",
                 nameof(rechnung));
+        var pdfVerknuepfung = rechnung.PdfVerknuepfung;
 
         var parameters = new DynamicParameters();
         parameters.Add("Id", rechnung.Id);
@@ -426,6 +591,7 @@ public sealed class RechnungRepository : IRechnungRepository
         parameters.Add("Titel", rechnung.Titel);
         parameters.Add("Erstellungsdatum", rechnung.Erstellungsdatum);
         parameters.Add("Rechnungsdatum", rechnung.Rechnungsdatum);
+        parameters.Add("Leistungsdatum", rechnung.Leistungsdatum);
         parameters.Add("Faelligkeitsdatum", rechnung.Faeligkeitsdatum);
         parameters.Add("KundeId", rechnung.KundeId);
         parameters.Add("FirmaProfilId", rechnung.FirmaProfilId);
@@ -438,6 +604,9 @@ public sealed class RechnungRepository : IRechnungRepository
         parameters.Add("Bemerkung", rechnung.Bemerkung);
         parameters.Add("ErstelltAm", erstelltAm);
         parameters.Add("GeaendertAm", geaendertAm);
+        parameters.Add("PdfRelativerPfad", pdfVerknuepfung?.RelativerPfad);
+        parameters.Add("PdfErstelltAm", pdfVerknuepfung?.ErstelltAm);
+        parameters.Add("PdfRechnungsstandAm", pdfVerknuepfung?.RechnungsstandAm);
         parameters.Add("EmpfaengerSnapshotName", empfaenger.Name);
         parameters.Add("EmpfaengerSnapshotAnsprechpartner", empfaenger.Ansprechpartner);
         parameters.Add("EmpfaengerSnapshotStrasse", empfaenger.Strasse);
@@ -448,6 +617,8 @@ public sealed class RechnungRepository : IRechnungRepository
         parameters.Add("EmpfaengerSnapshotUstIdNr", empfaenger.UstIdNr);
         parameters.Add("AbsenderSnapshotName", absender.Name);
         parameters.Add("AbsenderSnapshotLogoPfad", absender.LogoPfad);
+        parameters.Add("AbsenderSnapshotLogoInhalt", absender.LogoInhalt);
+        parameters.Add("AbsenderSnapshotLogoMedientyp", absender.LogoMedientyp);
         parameters.Add("AbsenderSnapshotAnsprechpartner", absender.Ansprechpartner);
         parameters.Add("AbsenderSnapshotStrasse", absender.Strasse);
         parameters.Add("AbsenderSnapshotPLZ", absender.PLZ);
@@ -549,6 +720,7 @@ public sealed class RechnungRepository : IRechnungRepository
         public string Titel { get; set; } = string.Empty;
         public DateTime Erstellungsdatum { get; set; }
         public DateTime Rechnungsdatum { get; set; }
+        public DateTime? Leistungsdatum { get; set; }
         public DateTime? Faeligkeitsdatum { get; set; }
         public int KundeId { get; set; }
         public int FirmaProfilId { get; set; }
@@ -561,6 +733,9 @@ public sealed class RechnungRepository : IRechnungRepository
         public string Bemerkung { get; set; } = string.Empty;
         public DateTime ErstelltAm { get; set; }
         public DateTime GeaendertAm { get; set; }
+        public string? PdfRelativerPfad { get; set; }
+        public DateTime? PdfErstelltAm { get; set; }
+        public DateTime? PdfRechnungsstandAm { get; set; }
         public string EmpfaengerSnapshotName { get; set; } = string.Empty;
         public string EmpfaengerSnapshotAnsprechpartner { get; set; } = string.Empty;
         public string EmpfaengerSnapshotStrasse { get; set; } = string.Empty;
@@ -571,6 +746,8 @@ public sealed class RechnungRepository : IRechnungRepository
         public string? EmpfaengerSnapshotUstIdNr { get; set; }
         public string AbsenderSnapshotName { get; set; } = string.Empty;
         public string AbsenderSnapshotLogoPfad { get; set; } = string.Empty;
+        public byte[]? AbsenderSnapshotLogoInhalt { get; set; }
+        public string? AbsenderSnapshotLogoMedientyp { get; set; }
         public string AbsenderSnapshotAnsprechpartner { get; set; } = string.Empty;
         public string AbsenderSnapshotStrasse { get; set; } = string.Empty;
         public string AbsenderSnapshotPLZ { get; set; } = string.Empty;
@@ -584,6 +761,8 @@ public sealed class RechnungRepository : IRechnungRepository
 
         public Rechnung ToModel(List<RechnungsPosition> positionen)
         {
+            var pdfVerknuepfung = ErstellePdfVerknuepfung();
+
             return new Rechnung
             {
                 Id = Id,
@@ -591,6 +770,7 @@ public sealed class RechnungRepository : IRechnungRepository
                 Titel = Titel,
                 Erstellungsdatum = Erstellungsdatum,
                 Rechnungsdatum = Rechnungsdatum,
+                Leistungsdatum = Leistungsdatum,
                 Faeligkeitsdatum = Faeligkeitsdatum,
                 KundeId = KundeId,
                 EmpfaengerSnapshot = new RechnungsEmpfaengerSnapshot
@@ -611,6 +791,8 @@ public sealed class RechnungRepository : IRechnungRepository
                     QuellId = FirmaProfilId,
                     Name = AbsenderSnapshotName,
                     LogoPfad = AbsenderSnapshotLogoPfad,
+                    LogoInhalt = AbsenderSnapshotLogoInhalt,
+                    LogoMedientyp = AbsenderSnapshotLogoMedientyp,
                     Ansprechpartner = AbsenderSnapshotAnsprechpartner,
                     Strasse = AbsenderSnapshotStrasse,
                     PLZ = AbsenderSnapshotPLZ,
@@ -631,8 +813,55 @@ public sealed class RechnungRepository : IRechnungRepository
                 Status = Status,
                 Bemerkung = Bemerkung,
                 ErstelltAm = ErstelltAm,
-                GeaendertAm = GeaendertAm
+                GeaendertAm = GeaendertAm,
+                PdfVerknuepfung = pdfVerknuepfung
             };
+        }
+
+        private RechnungsPdfVerknuepfung? ErstellePdfVerknuepfung()
+        {
+            var hatPfad = PdfRelativerPfad is not null;
+            var hatErstelltAm = PdfErstelltAm.HasValue;
+            var hatRechnungsstandAm = PdfRechnungsstandAm.HasValue;
+
+            if (!hatPfad && !hatErstelltAm && !hatRechnungsstandAm)
+            {
+                return null;
+            }
+
+            if (!hatPfad
+                || !hatErstelltAm
+                || !hatRechnungsstandAm
+                || string.IsNullOrWhiteSpace(PdfRelativerPfad))
+            {
+                throw new InvalidOperationException(
+                    $"Die gespeicherten PDF-Metadaten der Rechnung mit der ID {Id} sind inkonsistent. "
+                    + "Pfad, Erstellungszeitpunkt und Rechnungsstand müssen gemeinsam gesetzt sein.");
+            }
+
+            try
+            {
+                var pdfErstelltAm = PdfErstelltAm.GetValueOrDefault();
+                if (pdfErstelltAm.Kind == DateTimeKind.Unspecified)
+                {
+                    pdfErstelltAm = DateTime.SpecifyKind(pdfErstelltAm, DateTimeKind.Utc);
+                }
+                else if (pdfErstelltAm.Kind == DateTimeKind.Local)
+                {
+                    pdfErstelltAm = pdfErstelltAm.ToUniversalTime();
+                }
+
+                return new RechnungsPdfVerknuepfung(
+                    PdfRelativerPfad!,
+                    pdfErstelltAm,
+                    PdfRechnungsstandAm.GetValueOrDefault());
+            }
+            catch (ArgumentException exception)
+            {
+                throw new InvalidOperationException(
+                    $"Die gespeicherten PDF-Metadaten der Rechnung mit der ID {Id} sind ungültig.",
+                    exception);
+            }
         }
     }
 }
