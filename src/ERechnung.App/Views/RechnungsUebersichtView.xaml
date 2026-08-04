@@ -181,6 +181,28 @@
 
         <Border Grid.Row="4"
                 Margin="0,10,0,0"
+                Padding="12,12,4,4"
+                Background="#2D2D30"
+                BorderBrush="#55555A"
+                BorderThickness="1">
+            <WrapPanel>
+                <TextBlock Text="E-Rechnung (EN 16931)"
+                           Foreground="#D8D8D8"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           Margin="0,0,12,8"/>
+                <Button Content="XML exportieren"
+                        Command="{Binding XmlExportierenCommand}"
+                        Background="#007ACC"
+                        Style="{StaticResource ToolbarButtonStyle}"/>
+                <Button Content="XML-Ordner öffnen"
+                        Command="{Binding XmlImExplorerAnzeigenCommand}"
+                        Style="{StaticResource ToolbarButtonStyle}"/>
+            </WrapPanel>
+        </Border>
+
+        <Border Grid.Row="4"
+                Margin="0,10,0,0"
                 Padding="12"
                 Background="#2D2D30"
                 BorderBrush="#55555A"

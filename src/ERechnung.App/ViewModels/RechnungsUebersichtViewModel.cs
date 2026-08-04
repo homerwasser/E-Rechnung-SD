@@ -1,8 +1,13 @@
+using System;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.IO;
+using System.Text;
 using System.Windows.Input;
 using ERechnung.App.Services;
 using ERechnung.Core.Models;
 using ERechnung.Core.Services;
+using ERechnung.XML.Generators;
 
 namespace ERechnung.App.ViewModels;
 
@@ -15,6 +20,7 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
     private readonly EmailEntwurfComposer _emailEntwurfComposer;
     private readonly IEmailEntwurfService _emailEntwurfService;
     private readonly IUserDialogService _dialogService;
+    private readonly IUblGenerator _ublGenerator;
     private readonly AsyncRelayCommand _bearbeitenCommand;
     private readonly AsyncRelayCommand _loeschenCommand;
     private readonly AsyncRelayCommand _statusAendernCommand;
@@ -22,6 +28,9 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
     private readonly RelayCommand _pdfOeffnenCommand;
     private readonly RelayCommand _imExplorerAnzeigenCommand;
     private readonly AsyncRelayCommand _emailEntwurfOeffnenCommand;
+    private readonly AsyncRelayCommand _xmlExportierenCommand;
+    private readonly RelayCommand _xmlImExplorerAnzeigenCommand;
+    private string? _letzteXmlDatei;
 
     private RechnungsListenEintragViewModel? _ausgewaehlteRechnung;
     private RechnungsStatusOption _ausgewaehlterFilter;
@@ -37,6 +46,7 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
         IDateiOeffner dateiOeffner,
         EmailEntwurfComposer emailEntwurfComposer,
         IEmailEntwurfService emailEntwurfService,
+        IUblGenerator ublGenerator,
         IUserDialogService dialogService)
     {
         _rechnungService = rechnungService ?? throw new ArgumentNullException(nameof(rechnungService));
@@ -48,6 +58,7 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
             ?? throw new ArgumentNullException(nameof(emailEntwurfComposer));
         _emailEntwurfService = emailEntwurfService
             ?? throw new ArgumentNullException(nameof(emailEntwurfService));
+        _ublGenerator = ublGenerator ?? throw new ArgumentNullException(nameof(ublGenerator));
         _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
 
         FilterOptionen = new[] { new RechnungsStatusOption(null, "Alle") }
@@ -84,6 +95,12 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
         _emailEntwurfOeffnenCommand = new AsyncRelayCommand(
             EmailEntwurfOeffnenAsync,
             () => AusgewaehlteRechnung?.KannEmailEntwurfOeffnen == true && !IstBeschaeftigt);
+        _xmlExportierenCommand = new AsyncRelayCommand(
+            XmlExportierenAsync,
+            () => AusgewaehlteRechnung is not null && !IstBeschaeftigt);
+        _xmlImExplorerAnzeigenCommand = new RelayCommand(
+            XmlImExplorerAnzeigen,
+            () => !string.IsNullOrWhiteSpace(_letzteXmlDatei) && !IstBeschaeftigt);
     }
 
     public ObservableCollection<RechnungsListenEintragViewModel> Rechnungen { get; } = [];
@@ -99,6 +116,8 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
     public ICommand PdfOeffnenCommand => _pdfOeffnenCommand;
     public ICommand ImExplorerAnzeigenCommand => _imExplorerAnzeigenCommand;
     public ICommand EmailEntwurfOeffnenCommand => _emailEntwurfOeffnenCommand;
+    public ICommand XmlExportierenCommand => _xmlExportierenCommand;
+    public ICommand XmlImExplorerAnzeigenCommand => _xmlImExplorerAnzeigenCommand;
 
     public Func<Task>? NeueRechnungAngefordertAsync { get; set; }
     public Func<int, Task>? BearbeitungAngefordertAsync { get; set; }
@@ -383,6 +402,99 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
         return _pdfAblage.LoeseVollstaendigenPfadAuf(verknuepfung.RelativerPfad);
     }
 
+    public async Task XmlExportierenAsync()
+    {
+        var listenEintrag = AusgewaehlteRechnung;
+        if (listenEintrag is null || IstBeschaeftigt)
+        {
+            return;
+        }
+
+        IstBeschaeftigt = true;
+        Fehlermeldung = string.Empty;
+        try
+        {
+            var rechnung = await _rechnungService.GetByIdAsync(listenEintrag.Id)
+                ?? throw new KeyNotFoundException(
+                    $"Die Rechnung {listenEintrag.Nummer} wurde in der Datenbank nicht gefunden.");
+
+            var xmlInhalt = _ublGenerator.Generate(rechnung);
+            var xmlPfad = BerechneXmlPfad(rechnung);
+            var xmlOrdner = Path.GetDirectoryName(xmlPfad)
+                ?? throw new InvalidOperationException("Der XML-Zielordner konnte nicht bestimmt werden.");
+
+            Directory.CreateDirectory(xmlOrdner);
+            await File.WriteAllTextAsync(xmlPfad, xmlInhalt, Encoding.UTF8);
+
+            _letzteXmlDatei = xmlPfad;
+            _xmlImExplorerAnzeigenCommand.RaiseCanExecuteChanged();
+            Statusmeldung = $"E-Rechnung-XML für {rechnung.Nummer} nach {xmlPfad} gespeichert.";
+        }
+        catch (Exception ex)
+        {
+            Fehlermeldung = "Das E-Rechnung-XML konnte nicht exportiert werden.";
+            _dialogService.ShowError(
+                $"{Fehlermeldung}\n\n{ex.Message}",
+                "XML exportieren");
+        }
+        finally
+        {
+            IstBeschaeftigt = false;
+            AktualisiereCommandStatus();
+        }
+    }
+
+    public void XmlImExplorerAnzeigen()
+    {
+        if (string.IsNullOrWhiteSpace(_letzteXmlDatei) || !File.Exists(_letzteXmlDatei))
+        {
+            return;
+        }
+
+        try
+        {
+            _dateiOeffner.ImExplorerAnzeigen(_letzteXmlDatei!);
+        }
+        catch (Exception ex)
+        {
+            _dialogService.ShowError(
+                $"Das XML-Verzeichnis konnte im Explorer nicht geöffnet werden.\n\n{ex.Message}",
+                "Im Explorer anzeigen");
+        }
+    }
+
+    private static string BerechneXmlPfad(Rechnung rechnung)
+    {
+        var lokalAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var xmlBasisVerzeichnis = Path.Combine(lokalAppData, "ERechnung-SD", "xml");
+        var jahresordner = rechnung.Rechnungsdatum.Year.ToString(
+            "D4",
+            CultureInfo.InvariantCulture);
+        var bereinigterNummer = BereinigeDateiname(rechnung.Nummer);
+        var timestamp = DateTime.UtcNow.Ticks.ToString(CultureInfo.InvariantCulture);
+        var dateiname = $"rechnung-{rechnung.Id!.Value}-{bereinigterNummer}-{timestamp}.xml";
+
+        return Path.Combine(xmlBasisVerzeichnis, jahresordner, dateiname);
+    }
+
+    private static string BereinigeDateiname(string eingabe)
+    {
+        var ergebnis = new System.Text.StringBuilder();
+        foreach (var zeichen in eingabe.Trim())
+        {
+            if (char.IsAsciiLetterOrDigit(zeichen))
+            {
+                ergebnis.Append(zeichen);
+            }
+            else if (ergebnis.Length > 0 && ergebnis[^1] != '-')
+            {
+                ergebnis.Append('-');
+            }
+        }
+        var bereinigt = ergebnis.ToString().TrimEnd('-');
+        return bereinigt.Length > 0 ? bereinigt : "ohne-nummer";
+    }
+
     private async Task LadeRechnungenKernAsync(int? auswahlId)
     {
         var rechnungen = await _rechnungService.GetAllAsync(AusgewaehlterFilter.Wert);
@@ -481,5 +593,7 @@ public sealed class RechnungsUebersichtViewModel : ViewModelBase
         _pdfOeffnenCommand.RaiseCanExecuteChanged();
         _imExplorerAnzeigenCommand.RaiseCanExecuteChanged();
         _emailEntwurfOeffnenCommand.RaiseCanExecuteChanged();
+        _xmlExportierenCommand.RaiseCanExecuteChanged();
+        _xmlImExplorerAnzeigenCommand.RaiseCanExecuteChanged();
     }
 }

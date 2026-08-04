@@ -60,6 +60,7 @@ public partial class App : Application
                 dateiOeffner,
                 emailEntwurfComposer,
                 emailEntwurfService,
+                ublGenerator,
                 dialogService);
             var rechnungsEditorViewModel = new RechnungsEditorViewModel(
                 kundeRepository,
