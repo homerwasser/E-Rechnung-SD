@@ -10,7 +10,7 @@ GitHub ist die maßgebliche Quelle für Issues und Meilensteine:
 | M1 | Projekt-Setup und Grundgerüst | Implementiert; GitHub-Abschluss noch zu bereinigen |
 | M2 | Datenbank und Kundenverwaltung | Abgeschlossen und abgenommen am 02.08.2026 |
 | M3 | Rechnungserstellung (Kern) | Abgeschlossen und abgenommen am 03.08.2026 |
-| M4 | PDF-Generierung und E-Mail | Implementiert; manuelle Abnahme und GitHub-Abschluss ausstehend |
+| M4 | PDF-Generierung und E-Mail | Abgeschlossen und abgenommen am 04.08.2026 |
 | M5 | E-Rechnung: EN 16931, UBL/XRechnung und Factur-X/ZUGFeRD | Geplant |
 | M6 | Vorlagen und Einstellungen | Geplant |
 | M7 | Backup, Update und Veröffentlichung | Geplant |
