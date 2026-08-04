@@ -340,13 +340,15 @@ internal static class TestViewModelFactory
         IRechnungsPdfAblage? pdfAblage = null,
         StubPdfGenerator? pdfGenerator = null,
         StubDateiOeffner? dateiOeffner = null,
-        StubEmailEntwurfService? emailService = null)
+        StubEmailEntwurfService? emailService = null,
+        ERechnung.Core.Services.IUblGenerator? ublGenerator = null)
     {
         dialogService ??= new StubDialogService();
         pdfAblage ??= new StubPdfAblage();
         pdfGenerator ??= new StubPdfGenerator();
         dateiOeffner ??= new StubDateiOeffner();
         emailService ??= new StubEmailEntwurfService();
+        ublGenerator ??= new ERechnung.XML.Generators.UblGenerator();
         return new RechnungsUebersichtViewModel(
             new RechnungService(repository, pdfAblage: pdfAblage),
             new RechnungsPdfService(repository, pdfGenerator, pdfAblage),
@@ -354,6 +356,7 @@ internal static class TestViewModelFactory
             dateiOeffner,
             new EmailEntwurfComposer(),
             emailService,
+            ublGenerator,
             dialogService);
     }
 }
