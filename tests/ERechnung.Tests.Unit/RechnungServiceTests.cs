@@ -274,6 +274,100 @@ public sealed class RechnungServiceTests
     }
 
     [Fact]
+    public async Task SpeichernAsync_ForCreate_LoadsLogoIntoSenderSnapshot()
+    {
+        byte[] geladeneBytes = [1, 2, 3, 4];
+        var loader = new FakeLogoSnapshotLoader
+        {
+            Ergebnis = new LogoSnapshotDaten(geladeneBytes, "image/png")
+        };
+        var service = new RechnungService(new FakeRechnungRepository(), loader);
+        var rechnung = CreateValidInvoice(id: null, nummer: string.Empty);
+
+        await service.SpeichernAsync(rechnung);
+
+        var snapshot = Assert.IsType<RechnungsAbsenderSnapshot>(rechnung.AbsenderSnapshot);
+        Assert.Equal(1, loader.CallCount);
+        Assert.Equal("logos/synthetisch.png", loader.LetzterPfad);
+        Assert.Equal("image/png", snapshot.LogoMedientyp);
+        Assert.Equal([1, 2, 3, 4], snapshot.LogoInhalt);
+
+        geladeneBytes[0] = 9;
+        var herausgegebeneBytes = snapshot.LogoInhalt!;
+        herausgegebeneBytes[1] = 9;
+
+        Assert.Equal([1, 2, 3, 4], snapshot.LogoInhalt);
+    }
+
+    [Fact]
+    public async Task SpeichernAsync_WithChangedSenderProfile_LoadsNewLogo()
+    {
+        var loader = new FakeLogoSnapshotLoader
+        {
+            Ergebnis = new LogoSnapshotDaten([5, 6, 7], "image/webp")
+        };
+        var service = new RechnungService(new FakeRechnungRepository(), loader);
+        var rechnung = CreateValidInvoice(id: 42, nummer: "RE-2026-0042");
+        rechnung.AbsenderSnapshot = new RechnungsAbsenderSnapshot
+        {
+            QuellId = 20,
+            Name = "Historischer Absender",
+            LogoInhalt = [1],
+            LogoMedientyp = "image/png"
+        };
+
+        await service.SpeichernAsync(rechnung);
+
+        Assert.Equal(1, loader.CallCount);
+        Assert.Equal([5, 6, 7], rechnung.AbsenderSnapshot!.LogoInhalt);
+        Assert.Equal("image/webp", rechnung.AbsenderSnapshot.LogoMedientyp);
+    }
+
+    [Fact]
+    public async Task SpeichernAsync_WhenLogoLoaderFails_CreatesSnapshotWithoutLogo()
+    {
+        var loader = new FakeLogoSnapshotLoader
+        {
+            Fehler = new IOException("Synthetischer Logo-Ladefehler")
+        };
+        var service = new RechnungService(new FakeRechnungRepository(), loader);
+        var rechnung = CreateValidInvoice(id: null, nummer: string.Empty);
+
+        await service.SpeichernAsync(rechnung);
+
+        Assert.Equal(1, loader.CallCount);
+        Assert.NotNull(rechnung.AbsenderSnapshot);
+        Assert.Null(rechnung.AbsenderSnapshot.LogoInhalt);
+        Assert.Null(rechnung.AbsenderSnapshot.LogoMedientyp);
+    }
+
+    [Fact]
+    public async Task SpeichernAsync_WithStableSenderSnapshot_DoesNotReloadLogo()
+    {
+        var loader = new FakeLogoSnapshotLoader
+        {
+            Ergebnis = new LogoSnapshotDaten([8, 9], "image/jpeg")
+        };
+        var service = new RechnungService(new FakeRechnungRepository(), loader);
+        var rechnung = CreateValidInvoice(id: 42, nummer: "RE-2026-0042");
+        var snapshot = new RechnungsAbsenderSnapshot
+        {
+            QuellId = rechnung.FirmaProfilId!.Value,
+            Name = "Historischer Absender",
+            LogoInhalt = [1, 2],
+            LogoMedientyp = "image/png"
+        };
+        rechnung.AbsenderSnapshot = snapshot;
+
+        await service.SpeichernAsync(rechnung);
+
+        Assert.Equal(0, loader.CallCount);
+        Assert.Same(snapshot, rechnung.AbsenderSnapshot);
+        Assert.Equal([1, 2], rechnung.AbsenderSnapshot.LogoInhalt);
+        Assert.Equal("image/png", rechnung.AbsenderSnapshot.LogoMedientyp);
+    }
+
+    [Fact]
     public async Task SpeichernAsync_WithInvalidInvoice_CollectsValidationErrors()
     {
         var repository = new FakeRechnungRepository();
@@ -330,6 +424,50 @@ public sealed class RechnungServiceTests
         Assert.Same(rechnung, loaded);
         Assert.Equal(42, repository.LastLoadedId);
         Assert.Equal(42, repository.LastDeletedId);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WithLinkedPdf_DeletesPdfBeforeDatabaseRecord()
+    {
+        var operationen = new List<string>();
+        var rechnung = CreateValidInvoice(id: 42, nummer: "RE-2026-0042");
+        rechnung.PdfVerknuepfung = new RechnungsPdfVerknuepfung(
+            "2026/rechnung-42.pdf",
+            new DateTime(2026, 8, 3, 10, 0, 0, DateTimeKind.Utc),
+            rechnung.GeaendertAm);
+        var repository = new FakeRechnungRepository
+        {
+            InvoiceToLoad = rechnung,
+            Operationen = operationen
+        };
+        var pdfAblage = new FakePdfAblage { Operationen = operationen };
+        var service = new RechnungService(repository, pdfAblage: pdfAblage);
+
+        await service.DeleteAsync(42);
+
+        Assert.Equal(
+            ["pdf-loeschen:2026/rechnung-42.pdf", "rechnung-loeschen:42"],
+            operationen);
+        Assert.Equal(42, repository.LastDeletedId);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WhenPdfDeletionFails_PreservesDatabaseRecord()
+    {
+        var rechnung = CreateValidInvoice(id: 42, nummer: "RE-2026-0042");
+        rechnung.PdfVerknuepfung = new RechnungsPdfVerknuepfung(
+            "2026/rechnung-42.pdf",
+            new DateTime(2026, 8, 3, 10, 0, 0, DateTimeKind.Utc),
+            rechnung.GeaendertAm);
+        var repository = new FakeRechnungRepository { InvoiceToLoad = rechnung };
+        var erwarteterFehler = new IOException("Synthetischer PDF-Löschfehler");
+        var pdfAblage = new FakePdfAblage { DeleteException = erwarteterFehler };
+        var service = new RechnungService(repository, pdfAblage: pdfAblage);
+
+        var fehler = await Assert.ThrowsAsync<IOException>(() => service.DeleteAsync(42));
+
+        Assert.Same(erwarteterFehler, fehler);
+        Assert.Null(repository.LastDeletedId);
     }
 
     [Fact]
@@ -414,10 +552,57 @@ public sealed class RechnungServiceTests
         };
     }
 
+    private sealed class FakeLogoSnapshotLoader : ILogoSnapshotLoader
+    {
+        public LogoSnapshotDaten? Ergebnis { get; init; }
+        public Exception? Fehler { get; init; }
+        public int CallCount { get; private set; }
+        public string? LetzterPfad { get; private set; }
+
+        public LogoSnapshotDaten? Lade(string logoPfad)
+        {
+            CallCount++;
+            LetzterPfad = logoPfad;
+
+            if (Fehler is not null)
+            {
+                throw Fehler;
+            }
+
+            return Ergebnis;
+        }
+    }
+
+    private sealed class FakePdfAblage : IRechnungsPdfAblage
+    {
+        public Exception? DeleteException { get; init; }
+        public List<string>? Operationen { get; init; }
+
+        public Task<string> SpeichereAsync(
+            Rechnung rechnung,
+            ReadOnlyMemory<byte> pdfInhalt,
+            CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public bool Existiert(string relativerPfad) => false;
+
+        public string LoeseVollstaendigenPfadAuf(string relativerPfad) => relativerPfad;
+
+        public Task LoescheAsync(string relativerPfad, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Operationen?.Add($"pdf-loeschen:{relativerPfad}");
+            return DeleteException is null
+                ? Task.CompletedTask
+                : Task.FromException(DeleteException);
+        }
+    }
+
     private sealed class FakeRechnungRepository : IRechnungRepository
     {
         public IReadOnlyList<RechnungsUebersicht> Overviews { get; init; } = [];
         public Rechnung? InvoiceToLoad { get; init; }
+        public List<string>? Operationen { get; init; }
         public Rechnung? UpdatedInvoice { get; private set; }
         public DateTime? UpdatedGeaendertAm { get; private set; }
         public string? LastStatusFilter { get; private set; }
@@ -458,10 +643,28 @@ public sealed class RechnungServiceTests
             return Task.CompletedTask;
         }
 
+        public Task SetPdfVerknuepfungAsync(
+            int id,
+            RechnungsPdfVerknuepfung verknuepfung,
+            DateTime erwartetGeaendertAm,
+            RechnungsPdfVerknuepfung? erwartetePdfVerknuepfung)
+        {
+            return Task.CompletedTask;
+        }
+
         public Task DeleteAsync(int id)
         {
             LastDeletedId = id;
+            Operationen?.Add($"rechnung-loeschen:{id}");
             return Task.CompletedTask;
+        }
+
+        public Task DeleteIfUnchangedAsync(
+            int id,
+            DateTime erwartetGeaendertAm,
+            RechnungsPdfVerknuepfung? erwartetePdfVerknuepfung)
+        {
+            return DeleteAsync(id);
         }
     }
 }

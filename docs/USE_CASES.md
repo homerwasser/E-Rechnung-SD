@@ -13,9 +13,9 @@
    - **Modus A**: Feste Kostenzeile (z.B. „Tagespauschale", „Reisekosten").
    - **Modus B**: Flexible Tabelle – beliebige Anzahl an Zeilen, freier Text, Mengen, Preise.
 5. System berechnet **Gesamtbetrag, Steuern (USt.), Zwischensummen**.
-6. Vorschau der PDF-Rechnung angezeigt.
-7. Benutzer klickt **„Speichern"** → Rechnung wird als PDF + UBL-XML (E-Rechnung) gespeichert.
-8. Rechnung erscheint im **Dashboard** als gespeicherte Rechnung.
+6. Benutzer speichert die Rechnung; sie erscheint in der Rechnungsübersicht.
+7. Benutzer erzeugt oder aktualisiert die PDF/A-3B-Rechnung.
+8. EN-16931-XML und Factur-X/ZUGFeRD werden in M5 ergänzt.
 
 ---
 
@@ -26,12 +26,14 @@
 
 ### Ablauf
 1. Benutzer öffnet eine gespeicherte Rechnung im Dashboard.
-2. Klick auf **„Per E-Mail senden"**.
-3. System startet Outlook mit:
-   - Empfängeradresse vorbefüllt (aus Kundendaten).
-   - Betreff: `E-Rechnung [Nr.] – [Firmenname]`.
-   - Anhang: Die PDF-Rechnung (inkl. eingebettetem UBL-Factur-X).
-4. Benutzer prüft, bestätigt, versendet.
+2. Benutzer wählt eine aktuelle, vorhandene PDF und klickt auf **„E-Mail-Entwurf öffnen"**.
+3. Bei klassischem Outlook öffnet das System einen interaktiven Entwurf mit:
+   - Empfängeradresse aus dem historischen Rechnungsempfänger-Snapshot,
+   - vorbefülltem Betreff und Nachrichtentext,
+   - der aktuellen PDF-Rechnung als Anhang.
+4. Ist klassisches Outlook nicht verfügbar, öffnet das System den Standard-Mail-Client über `mailto:` mit Empfänger, Betreff und Text. RFC 6068 unterstützt keine Anhänge; deshalb weist die Anwendung auf das manuelle Anhängen hin und zeigt die PDF im Explorer.
+5. Der Benutzer prüft und versendet selbst. Die Anwendung ruft niemals automatisch `Send` auf und ändert den Rechnungsstatus nicht automatisch.
+6. Das Einbetten von Factur-X/CII wird in M5 ergänzt.
 
 ---
 

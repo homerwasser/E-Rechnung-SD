@@ -11,4 +11,8 @@ public class RechnungsUebersicht
     public string KundeName { get; set; } = string.Empty;
     public decimal GesamtbetragBrutto { get; set; }
     public string Status { get; set; } = RechnungsStatus.Erstellt;
+    public DateTime GeaendertAm { get; set; }
+    public string? PdfRelativerPfad { get; set; }
+    public DateTime? PdfErstelltAm { get; set; }
+    public DateTime? PdfRechnungsstandAm { get; set; }
 }

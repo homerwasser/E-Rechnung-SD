@@ -13,7 +13,11 @@ public static class DatabaseMigrator
         new(
             AddInvoiceCreationSchemaMigration.Version,
             AddInvoiceCreationSchemaMigration.Name,
-            AddInvoiceCreationSchemaMigration.Sql)
+            AddInvoiceCreationSchemaMigration.Sql),
+        new(
+            AddInvoicePdfDataMigration.Version,
+            AddInvoicePdfDataMigration.Name,
+            AddInvoicePdfDataMigration.Sql)
     ];
 
     public static async Task MigrateAsync(string connectionString)

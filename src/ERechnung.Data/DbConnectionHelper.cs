@@ -14,14 +14,22 @@ public static class DbConnectionHelper
 
     public static string DatabasePath { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// Basisverzeichnis für erzeugte Rechnungs-PDFs:
+    /// <c>%LOCALAPPDATA%\ERechnung-SD\pdf</c>.
+    /// </summary>
+    public static string PdfBasePath { get; private set; } = string.Empty;
+
     public static void Initialize(string? databasePath = null)
     {
         DatabasePath = Path.GetFullPath(databasePath ?? GetDefaultDatabasePath());
+        PdfBasePath = Path.GetFullPath(GetDefaultPdfBasePath());
 
         var dataDirectory = Path.GetDirectoryName(DatabasePath)
             ?? throw new InvalidOperationException("Der Datenbankordner konnte nicht bestimmt werden.");
 
         Directory.CreateDirectory(dataDirectory);
+        Directory.CreateDirectory(PdfBasePath);
 
         _connectionString = new SqliteConnectionStringBuilder
         {
@@ -37,6 +45,12 @@ public static class DbConnectionHelper
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         return Path.Combine(localAppData, "ERechnung-SD", "data", "erechnung.db");
+    }
+
+    public static string GetDefaultPdfBasePath()
+    {
+        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        return Path.Combine(localAppData, "ERechnung-SD", "pdf");
     }
 
     public static SqliteConnection GetConnection() => new(ConnectionString);

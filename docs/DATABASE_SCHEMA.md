@@ -5,6 +5,7 @@
 | Inhalt | Pfad |
 |---|---|
 | Datenbank | `%LOCALAPPDATA%\ERechnung-SD\data\erechnung.db` |
+| Rechnungs-PDFs | `%LOCALAPPDATA%\ERechnung-SD\pdf\<Jahr>\` |
 | Backups (M7) | `%LOCALAPPDATA%\ERechnung-SD\backups\` |
 
 Die Datenbank liegt bewusst außerhalb des Programm- und Repositoryordners. Eine Neuinstallation oder ein Programmupdate darf die Nutzerdaten nicht ersetzen.
@@ -36,6 +37,7 @@ Aktueller Stand:
 |---|---|
 | 1 | Kunden, Firmenprofile, Rechnungen, Positionen und Indizes |
 | 2 | Firmenprofil-Land, Rechnungswährung, Stammdaten-Snapshots und jährliche Rechnungsnummernsequenz |
+| 3 | Leistungsdatum, historischer Logo-Inhalt und PDF-Verknüpfungsdaten |
 
 ## M2: Kunden
 
@@ -76,6 +78,20 @@ Wichtige Rechnungsfelder:
 Snapshots bewahren die bei der Rechnungserstellung verwendeten Namen, Anschriften, Kontakt-, Bank- und Steuerdaten. Spätere Änderungen an Kunden oder Firmenprofilen verändern damit keine bereits gespeicherte Rechnung.
 
 Positionen enthalten Beschreibung, Menge, Einheit, Nettopreis, Steuersatz und eine stabile Reihenfolge. Beim Löschen einer Rechnung werden ihre Positionen per Cascade entfernt.
+
+## M4: Leistungsdatum, Logo und PDF-Verknüpfung
+
+Migration 3 ergänzt:
+
+- `Leistungsdatum` als optionales Leistungs-/Veranstaltungsdatum
+- `AbsenderSnapshotLogoInhalt` und `AbsenderSnapshotLogoMedientyp` für das historische Logo
+- `PdfRelativerPfad`, `PdfErstelltAm` und `PdfRechnungsstandAm` für die verwaltete PDF-Verknüpfung
+
+In SQLite wird bewusst nur ein relativer PDF-Pfad gespeichert. Die Ablage löst ihn unterhalb ihres festen Basisverzeichnisses auf, lehnt absolute Pfade, Traversal-Segmente und Reparse-Points ab und verwendet technische Dateinamen ohne Kundennamen. Jede Erzeugung schreibt zunächst eine temporäre Datei und verschiebt sie anschließend atomar auf einen eindeutigen Zielpfad.
+
+`PdfRechnungsstandAm` referenziert den bei der PDF-Erzeugung gelesenen Wert von `GeaendertAm`. Stimmen beide Werte nicht mehr überein, ist die PDF veraltet. Normale Rechnungsänderungen überschreiben die PDF-Spalten nicht. Das Verknüpfen einer neu erzeugten PDF verwendet eine optimistische Versionsprüfung auf Rechnungsstand und erwartete Vorgänger-Verknüpfung; erst nach erfolgreicher Verknüpfung wird die alte Version entfernt.
+
+Beim erfolgreichen Löschen einer Rechnung wird auch ihre verknüpfte PDF gelöscht. Kann die PDF nicht entfernt werden, wird das Löschen des Datenbankeintrags abgebrochen, damit keine sensible, nicht mehr referenzierte Datei zurückbleibt. Das Datenbank-Delete prüft anschließend erneut Rechnungsstand und PDF-Verknüpfung, sodass eine parallel neu verknüpfte PDF nicht durch ein veraltetes Löschen verwaist.
 
 ## Rechnungsnummern
 

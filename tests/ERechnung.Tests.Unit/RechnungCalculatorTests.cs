@@ -128,6 +128,65 @@ public sealed class RechnungCalculatorTests
         Assert.Equal(0m, rechnung.GesamtsteuerRate);
     }
 
+    [Fact]
+    public void BerechneSteuergruppen_WithMixedRates_ReturnsSortedGroups()
+    {
+        var positionen = new[]
+        {
+            CreatePosition(2m, 10m, 19m),
+            CreatePosition(1m, 10m, 0m),
+            CreatePosition(1m, 10m, 7m)
+        };
+
+        var gruppen = RechnungCalculator.BerechneSteuergruppen(positionen);
+
+        Assert.Equal(
+            [
+                new RechnungsSteuergruppe(0m, 10m, 0m),
+                new RechnungsSteuergruppe(7m, 10m, 0.70m),
+                new RechnungsSteuergruppe(19m, 20m, 3.80m)
+            ],
+            gruppen);
+    }
+
+    [Fact]
+    public void BerechneSteuergruppen_RoundsPositionsBeforeGroupTax()
+    {
+        var positionen = new[]
+        {
+            CreatePosition(1m, 0.005m, 19m),
+            CreatePosition(1m, 0.015m, 19m)
+        };
+
+        var gruppe = Assert.Single(RechnungCalculator.BerechneSteuergruppen(positionen));
+
+        Assert.Equal(0.03m, gruppe.Nettobetrag);
+        Assert.Equal(0.01m, gruppe.Steuerbetrag);
+    }
+
+    [Fact]
+    public void BerechneSteuergruppen_EqualsCalculatedInvoiceTotals()
+    {
+        var rechnung = new Rechnung
+        {
+            Positionen =
+            [
+                CreatePosition(1m, 3.335m, 0m),
+                CreatePosition(2m, 4.445m, 7m),
+                CreatePosition(3m, 5.555m, 19m)
+            ]
+        };
+
+        var gruppen = RechnungCalculator.BerechneSteuergruppen(rechnung.Positionen);
+        RechnungCalculator.Berechnen(rechnung);
+
+        Assert.Equal(gruppen.Sum(gruppe => gruppe.Nettobetrag), rechnung.GesamtbetragNetto);
+        Assert.Equal(gruppen.Sum(gruppe => gruppe.Steuerbetrag), rechnung.UmsatzsteuerBetrag);
+        Assert.Equal(
+            gruppen.Sum(gruppe => gruppe.Nettobetrag + gruppe.Steuerbetrag),
+            rechnung.GesamtbetragBrutto);
+    }
+
     private static RechnungsPosition CreatePosition(
         decimal menge,
         decimal einzelpreisNetto,

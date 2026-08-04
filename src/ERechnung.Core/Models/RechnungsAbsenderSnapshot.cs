@@ -5,9 +5,18 @@ namespace ERechnung.Core.Models;
 /// </summary>
 public class RechnungsAbsenderSnapshot
 {
+    private byte[]? _logoInhalt;
+
     public int QuellId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string LogoPfad { get; set; } = string.Empty;
+    public byte[]? LogoInhalt
+    {
+        get => _logoInhalt?.ToArray();
+        set => _logoInhalt = value?.ToArray();
+    }
+
+    public string? LogoMedientyp { get; set; }
     public string Ansprechpartner { get; set; } = string.Empty;
     public string Strasse { get; set; } = string.Empty;
     public string PLZ { get; set; } = string.Empty;

@@ -8,5 +8,14 @@ public interface IRechnungRepository
     Task<Rechnung?> GetByIdAsync(int id);
     Task<Rechnung> CreateAsync(Rechnung rechnung);
     Task UpdateAsync(Rechnung rechnung);
+    Task SetPdfVerknuepfungAsync(
+        int id,
+        RechnungsPdfVerknuepfung verknuepfung,
+        DateTime erwartetGeaendertAm,
+        RechnungsPdfVerknuepfung? erwartetePdfVerknuepfung);
     Task DeleteAsync(int id);
+    Task DeleteIfUnchangedAsync(
+        int id,
+        DateTime erwartetGeaendertAm,
+        RechnungsPdfVerknuepfung? erwartetePdfVerknuepfung);
 }

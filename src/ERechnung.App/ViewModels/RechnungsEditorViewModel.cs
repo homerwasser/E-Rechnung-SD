@@ -22,6 +22,7 @@ public sealed class RechnungsEditorViewModel : ViewModelBase
     private FirmaProfil? _ausgewaehltesFirmaProfil;
     private string _titel = string.Empty;
     private DateTime? _rechnungsdatum = DateTime.Today;
+    private DateTime? _leistungsdatum = DateTime.Today;
     private DateTime? _faelligkeitsdatum = DateTime.Today.AddDays(14);
     private string _status = RechnungsStatus.Erstellt;
     private string _bemerkung = string.Empty;
@@ -112,6 +113,12 @@ public sealed class RechnungsEditorViewModel : ViewModelBase
     {
         get => _rechnungsdatum;
         set => SetzeEingabewert(ref _rechnungsdatum, value);
+    }
+
+    public DateTime? Leistungsdatum
+    {
+        get => _leistungsdatum;
+        set => SetzeEingabewert(ref _leistungsdatum, value);
     }
 
     public DateTime? Faelligkeitsdatum
@@ -222,6 +229,7 @@ public sealed class RechnungsEditorViewModel : ViewModelBase
             {
                 Erstellungsdatum = DateTime.Today,
                 Rechnungsdatum = DateTime.Today,
+                Leistungsdatum = DateTime.Today,
                 Faeligkeitsdatum = DateTime.Today.AddDays(14),
                 Status = RechnungsStatus.Erstellt,
                 Waehrung = "EUR",
@@ -411,6 +419,7 @@ public sealed class RechnungsEditorViewModel : ViewModelBase
             SnapshotHinweis = ErstelleSnapshotHinweis(rechnung);
             Titel = rechnung.Titel;
             Rechnungsdatum = rechnung.Rechnungsdatum;
+            Leistungsdatum = rechnung.Leistungsdatum;
             Faelligkeitsdatum = rechnung.Faeligkeitsdatum;
             Status = RechnungsStatus.IsValid(rechnung.Status)
                 ? rechnung.Status
@@ -513,6 +522,7 @@ public sealed class RechnungsEditorViewModel : ViewModelBase
     {
         RechnungsEntwurf.Titel = Titel.Trim();
         RechnungsEntwurf.Rechnungsdatum = Rechnungsdatum?.Date ?? default;
+        RechnungsEntwurf.Leistungsdatum = Leistungsdatum?.Date;
         RechnungsEntwurf.Faeligkeitsdatum = Faelligkeitsdatum?.Date;
         RechnungsEntwurf.KundeId = AusgewaehlterKunde?.Id;
         RechnungsEntwurf.Kunde = AusgewaehlterKunde;

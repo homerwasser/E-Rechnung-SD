@@ -6,7 +6,10 @@ using ERechnung.App.ViewModels;
 using ERechnung.Core.Services;
 using ERechnung.Data;
 using ERechnung.Data.Migrations;
+using ERechnung.Data.Pdf;
 using ERechnung.Data.Repositories;
+using ERechnung.PDF;
+using ERechnung.PDF.Generators;
 
 namespace ERechnung.App;
 
@@ -23,6 +26,7 @@ public partial class App : Application
                 new FrameworkPropertyMetadata(
                     XmlLanguage.GetLanguage(CultureInfo.CurrentCulture.IetfLanguageTag)));
 
+            QuestPdfLizenz.KonfiguriereCommunity();
             DbConnectionHelper.Initialize();
             await DatabaseMigrator.MigrateAsync(DbConnectionHelper.ConnectionString);
 
@@ -30,7 +34,18 @@ public partial class App : Application
             var kundeRepository = new KundeRepository(DbConnectionHelper.ConnectionString);
             var firmaProfilRepository = new FirmaProfilRepository(DbConnectionHelper.ConnectionString);
             var rechnungRepository = new RechnungRepository(DbConnectionHelper.ConnectionString);
-            var rechnungService = new RechnungService(rechnungRepository);
+            var pdfAblage = new LocalRechnungsPdfAblage(DbConnectionHelper.PdfBasePath);
+            var rechnungService = new RechnungService(
+                rechnungRepository,
+                new LocalLogoSnapshotLoader(),
+                pdfAblage);
+            var rechnungsPdfService = new RechnungsPdfService(
+                rechnungRepository,
+                new QuestPdfRechnungsPdfGenerator(),
+                pdfAblage);
+            var dateiOeffner = new WindowsDateiOeffner();
+            var emailEntwurfComposer = new EmailEntwurfComposer();
+            var emailEntwurfService = new WindowsEmailEntwurfService();
 
             var kundenViewModel = new KundenViewModel(kundeRepository, dialogService);
             var firmenprofileViewModel = new FirmenprofileViewModel(
@@ -38,6 +53,11 @@ public partial class App : Application
                 dialogService);
             var rechnungsUebersichtViewModel = new RechnungsUebersichtViewModel(
                 rechnungService,
+                rechnungsPdfService,
+                pdfAblage,
+                dateiOeffner,
+                emailEntwurfComposer,
+                emailEntwurfService,
                 dialogService);
             var rechnungsEditorViewModel = new RechnungsEditorViewModel(
                 kundeRepository,

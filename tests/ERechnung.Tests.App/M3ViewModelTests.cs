@@ -227,8 +227,8 @@ public sealed class M3ViewModelTests
     {
         var repository = new StubRechnungRepository(
             [TestData.GespeicherteRechnung(status: RechnungsStatus.Bezahlt)]);
-        var viewModel = new RechnungsUebersichtViewModel(
-            new RechnungService(repository),
+        var viewModel = TestViewModelFactory.ErstelleUebersicht(
+            repository,
             new StubDialogService());
         viewModel.AusgewaehlterFilter = Assert.Single(
             viewModel.FilterOptionen,
@@ -245,8 +245,8 @@ public sealed class M3ViewModelTests
     {
         var rechnung = TestData.GespeicherteRechnung();
         var repository = new StubRechnungRepository([rechnung]);
-        var viewModel = new RechnungsUebersichtViewModel(
-            new RechnungService(repository),
+        var viewModel = TestViewModelFactory.ErstelleUebersicht(
+            repository,
             new StubDialogService());
         await viewModel.InitialisierenAsync();
         viewModel.AusgewaehlteRechnung = Assert.Single(viewModel.Rechnungen);
@@ -269,7 +269,7 @@ public sealed class M3ViewModelTests
         var rechnungRepository = new StubRechnungRepository();
         var service = new RechnungService(rechnungRepository);
         var dialog = new StubDialogService();
-        var uebersicht = new RechnungsUebersichtViewModel(service, dialog);
+        var uebersicht = TestViewModelFactory.ErstelleUebersicht(rechnungRepository, dialog);
         var editor = new RechnungsEditorViewModel(
             kundeRepository,
             profilRepository,
@@ -387,7 +387,7 @@ public sealed class M3ViewModelTests
         var rechnungRepository = new StubRechnungRepository();
         var service = new RechnungService(rechnungRepository);
         var dialog = new StubDialogService();
-        var uebersicht = new RechnungsUebersichtViewModel(service, dialog);
+        var uebersicht = TestViewModelFactory.ErstelleUebersicht(rechnungRepository, dialog);
         var editor = new RechnungsEditorViewModel(
             kundeRepository,
             profilRepository,

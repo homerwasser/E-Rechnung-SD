@@ -5,11 +5,18 @@ namespace ERechnung.Core.Services;
 public sealed class RechnungService
 {
     private readonly IRechnungRepository _repository;
+    private readonly ILogoSnapshotLoader? _logoSnapshotLoader;
+    private readonly IRechnungsPdfAblage? _pdfAblage;
 
-    public RechnungService(IRechnungRepository repository)
+    public RechnungService(
+        IRechnungRepository repository,
+        ILogoSnapshotLoader? logoSnapshotLoader = null,
+        IRechnungsPdfAblage? pdfAblage = null)
     {
         ArgumentNullException.ThrowIfNull(repository);
         _repository = repository;
+        _logoSnapshotLoader = logoSnapshotLoader;
+        _pdfAblage = pdfAblage;
     }
 
     public Task<IReadOnlyList<RechnungsUebersicht>> GetAllAsync(string? status = null)
@@ -60,9 +67,24 @@ public sealed class RechnungService
         return rechnung;
     }
 
-    public Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id)
     {
-        return _repository.DeleteAsync(id);
+        var rechnung = await _repository.GetByIdAsync(id)
+            ?? throw new InvalidOperationException(
+                $"Die Rechnung mit der ID {id} wurde nicht gefunden.");
+        var pdfVerknuepfung = rechnung.PdfVerknuepfung;
+
+        if (_pdfAblage is not null && pdfVerknuepfung is not null)
+        {
+            await _pdfAblage.LoescheAsync(
+                pdfVerknuepfung.RelativerPfad,
+                CancellationToken.None);
+        }
+
+        await _repository.DeleteIfUnchangedAsync(
+            id,
+            rechnung.GeaendertAm,
+            pdfVerknuepfung);
     }
 
     public async Task<Rechnung> StatusAendernAsync(int id, string status)
@@ -79,7 +101,7 @@ public sealed class RechnungService
         return await SpeichernAsync(rechnung);
     }
 
-    private static IReadOnlyList<string> AktualisiereSnapshots(
+    private IReadOnlyList<string> AktualisiereSnapshots(
         Rechnung rechnung,
         bool istNeueRechnung)
     {
@@ -155,15 +177,19 @@ public sealed class RechnungService
         };
     }
 
-    private static RechnungsAbsenderSnapshot ErstelleAbsenderSnapshot(
+    private RechnungsAbsenderSnapshot ErstelleAbsenderSnapshot(
         int quellId,
         FirmaProfil firmaProfil)
     {
+        var logoDaten = LadeLogoBestmoeglich(firmaProfil.LogoPfad);
+
         return new RechnungsAbsenderSnapshot
         {
             QuellId = quellId,
             Name = firmaProfil.Name,
             LogoPfad = firmaProfil.LogoPfad,
+            LogoInhalt = logoDaten?.Inhalt,
+            LogoMedientyp = logoDaten?.Medientyp,
             Ansprechpartner = firmaProfil.Ansprechpartner,
             Strasse = firmaProfil.Strasse,
             PLZ = firmaProfil.PLZ,
@@ -175,5 +201,22 @@ public sealed class RechnungService
             IBAN = firmaProfil.IBAN,
             BIC = firmaProfil.BIC
         };
+    }
+
+    private LogoSnapshotDaten? LadeLogoBestmoeglich(string logoPfad)
+    {
+        if (_logoSnapshotLoader is null || string.IsNullOrWhiteSpace(logoPfad))
+        {
+            return null;
+        }
+
+        try
+        {
+            return _logoSnapshotLoader.Lade(logoPfad);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 }

@@ -6,7 +6,7 @@ namespace ERechnung.Tests.Integration;
 public sealed class DatabaseMigratorTests
 {
     [Fact]
-    public async Task MigrateAsync_OnFreshDatabase_CreatesCompleteSchemaAndBothVersions()
+    public async Task MigrateAsync_OnFreshDatabase_CreatesCompleteSchemaAndAllVersions()
     {
         using var database = new TemporarySqliteDatabase();
 
@@ -44,7 +44,7 @@ public sealed class DatabaseMigratorTests
                 "tbl_RechnungsnummerSequenz"
             },
             tableNames);
-        Assert.Equal(new long[] { 1, 2 }, versions);
+        Assert.Equal(new long[] { 1, 2, 3 }, versions);
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class DatabaseMigratorTests
         Assert.Equal(42L, Convert.ToInt64(await command.ExecuteScalarAsync()));
 
         command.CommandText = "SELECT COUNT(*) FROM SchemaMigrations;";
-        Assert.Equal(2L, Convert.ToInt64(await command.ExecuteScalarAsync()));
+        Assert.Equal(3L, Convert.ToInt64(await command.ExecuteScalarAsync()));
     }
 
     [Fact]
@@ -140,10 +140,13 @@ public sealed class DatabaseMigratorTests
             """);
         var rechnungColumns = await ReadTableColumnsAsync(connection, "tbl_Rechnung");
 
-        Assert.Equal(new long[] { 1, 2 }, versions);
+        Assert.Equal(new long[] { 1, 2, 3 }, versions);
         Assert.Equal(1, rechnungColumns.Count(column => column.Name == "Waehrung"));
         Assert.Equal(1, rechnungColumns.Count(column => column.Name == "EmpfaengerSnapshotName"));
         Assert.Equal(1, rechnungColumns.Count(column => column.Name == "AbsenderSnapshotName"));
+        Assert.Equal(1, rechnungColumns.Count(column => column.Name == "Leistungsdatum"));
+        Assert.Equal(1, rechnungColumns.Count(column => column.Name == "PdfRelativerPfad"));
+        Assert.Equal(1, rechnungColumns.Count(column => column.Name == "AbsenderSnapshotLogoInhalt"));
     }
 
     [Fact]
@@ -163,7 +166,111 @@ public sealed class DatabaseMigratorTests
             ORDER BY Version;
             """);
 
-        Assert.Equal(new[] { "1:1", "2:1" }, migrationCounts);
+        Assert.Equal(new[] { "1:1", "2:1", "3:1" }, migrationCounts);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_VersionThreeSchema_HasNullableDefaultsAndExpectedChecks()
+    {
+        using var database = new TemporarySqliteDatabase();
+        await DatabaseMigrator.MigrateAsync(database.ConnectionString);
+
+        await using var connection = await database.OpenConnectionAsync();
+        var rechnungColumns = await ReadTableColumnsAsync(connection, "tbl_Rechnung");
+
+        AssertColumn(rechnungColumns, "Leistungsdatum", notNull: false, defaultValue: null);
+        AssertColumn(rechnungColumns, "PdfRelativerPfad", notNull: false, defaultValue: null);
+        AssertColumn(rechnungColumns, "PdfErstelltAm", notNull: false, defaultValue: null);
+        AssertColumn(rechnungColumns, "PdfRechnungsstandAm", notNull: false, defaultValue: null);
+        AssertColumn(rechnungColumns, "AbsenderSnapshotLogoInhalt", notNull: false, defaultValue: null);
+        AssertColumn(rechnungColumns, "AbsenderSnapshotLogoMedientyp", notNull: false, defaultValue: null);
+
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO tbl_Kunde (Firmenname)
+            VALUES ('Synthetischer M3-Kunde');
+            INSERT INTO tbl_FirmaProfil (Name)
+            VALUES ('Synthetisches M3-Profil');
+            INSERT INTO tbl_Rechnung (Nummer, Rechnungsdatum, KundeId, FirmaProfilId)
+            VALUES ('2026-M3', '2026-08-03', 1, 1);
+            """;
+        await command.ExecuteNonQueryAsync();
+
+        command.CommandText = """
+            SELECT Leistungsdatum,
+                   PdfRelativerPfad,
+                   PdfErstelltAm,
+                   PdfRechnungsstandAm,
+                   AbsenderSnapshotLogoInhalt,
+                   AbsenderSnapshotLogoMedientyp
+            FROM tbl_Rechnung
+            WHERE Nummer = '2026-M3';
+            """;
+        await using (var reader = await command.ExecuteReaderAsync())
+        {
+            Assert.True(await reader.ReadAsync());
+            Assert.All(Enumerable.Range(0, reader.FieldCount), index => Assert.True(reader.IsDBNull(index)));
+        }
+
+        command.CommandText = """
+            UPDATE tbl_Rechnung
+            SET PdfRelativerPfad = '   '
+            WHERE Nummer = '2026-M3';
+            """;
+        var leererPfadException = await Assert.ThrowsAsync<SqliteException>(
+            () => command.ExecuteNonQueryAsync());
+        Assert.Equal(19, leererPfadException.SqliteErrorCode);
+
+        command.CommandText = """
+            UPDATE tbl_Rechnung
+            SET AbsenderSnapshotLogoMedientyp = 'image/gif'
+            WHERE Nummer = '2026-M3';
+            """;
+        var medientypException = await Assert.ThrowsAsync<SqliteException>(
+            () => command.ExecuteNonQueryAsync());
+        Assert.Equal(19, medientypException.SqliteErrorCode);
+    }
+
+    [Fact]
+    public async Task MigrateAsync_FromVersionTwo_AddsNullableFieldsWithoutInventedBackfill()
+    {
+        using var database = new TemporarySqliteDatabase();
+        await CreateVersionTwoDatabaseAsync(database);
+
+        await using (var connection = await database.OpenConnectionAsync())
+        {
+            var versionsBefore = await ReadInt64ValuesAsync(connection, """
+                SELECT Version FROM SchemaMigrations ORDER BY Version;
+                """);
+            var columnsBefore = await ReadTableColumnsAsync(connection, "tbl_Rechnung");
+            Assert.Equal(new long[] { 1, 2 }, versionsBefore);
+            Assert.DoesNotContain(columnsBefore, column => column.Name == "Leistungsdatum");
+        }
+
+        await DatabaseMigrator.MigrateAsync(database.ConnectionString);
+
+        await using var migratedConnection = await database.OpenConnectionAsync();
+        var versionsAfter = await ReadInt64ValuesAsync(migratedConnection, """
+            SELECT Version FROM SchemaMigrations ORDER BY Version;
+            """);
+        Assert.Equal(new long[] { 1, 2, 3 }, versionsAfter);
+
+        await using var command = migratedConnection.CreateCommand();
+        command.CommandText = """
+            SELECT Titel,
+                   Leistungsdatum,
+                   PdfRelativerPfad,
+                   PdfErstelltAm,
+                   PdfRechnungsstandAm,
+                   AbsenderSnapshotLogoInhalt,
+                   AbsenderSnapshotLogoMedientyp
+            FROM tbl_Rechnung
+            WHERE Nummer = '2026-V2';
+            """;
+        await using var reader = await command.ExecuteReaderAsync();
+        Assert.True(await reader.ReadAsync());
+        Assert.Equal("Synthetischer Version-2-Bestand", reader.GetString(0));
+        Assert.All(Enumerable.Range(1, 6), index => Assert.True(reader.IsDBNull(index)));
     }
 
     [Fact]
@@ -239,6 +346,43 @@ public sealed class DatabaseMigratorTests
             WHERE Name = 'Profil mit Standardland';
             """;
         Assert.Equal("DE", Convert.ToString(await command.ExecuteScalarAsync()));
+    }
+
+    private static async Task CreateVersionTwoDatabaseAsync(TemporarySqliteDatabase database)
+    {
+        await DatabaseMigrator.MigrateAsync(database.ConnectionString);
+
+        await using var connection = await database.OpenConnectionAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO tbl_Kunde (Firmenname)
+            VALUES ('Synthetischer Version-2-Kunde');
+            INSERT INTO tbl_FirmaProfil (Name)
+            VALUES ('Synthetisches Version-2-Profil');
+            INSERT INTO tbl_Rechnung (
+                Nummer,
+                Titel,
+                Rechnungsdatum,
+                KundeId,
+                FirmaProfilId
+            )
+            VALUES (
+                '2026-V2',
+                'Synthetischer Version-2-Bestand',
+                '2026-08-03',
+                1,
+                1
+            );
+
+            ALTER TABLE tbl_Rechnung DROP COLUMN Leistungsdatum;
+            ALTER TABLE tbl_Rechnung DROP COLUMN PdfRelativerPfad;
+            ALTER TABLE tbl_Rechnung DROP COLUMN PdfErstelltAm;
+            ALTER TABLE tbl_Rechnung DROP COLUMN PdfRechnungsstandAm;
+            ALTER TABLE tbl_Rechnung DROP COLUMN AbsenderSnapshotLogoInhalt;
+            ALTER TABLE tbl_Rechnung DROP COLUMN AbsenderSnapshotLogoMedientyp;
+            DELETE FROM SchemaMigrations WHERE Version = 3;
+            """;
+        await command.ExecuteNonQueryAsync();
     }
 
     private static async Task CreateVersionOneDatabaseAsync(TemporarySqliteDatabase database)
@@ -405,7 +549,7 @@ public sealed class DatabaseMigratorTests
         IEnumerable<TableColumn> columns,
         string name,
         bool notNull,
-        string defaultValue)
+        string? defaultValue)
     {
         var column = Assert.Single(columns, column => column.Name == name);
         Assert.Equal(notNull, column.NotNull);
