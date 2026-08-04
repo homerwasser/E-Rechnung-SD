@@ -29,6 +29,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ERechnung.Core\ERechnung.Core.csproj" />
     <ProjectReference Include="..\..\src\ERechnung.PDF\ERechnung.PDF.csproj" />
+    <ProjectReference Include="..\..\src\ERechnung.XML\ERechnung.XML.csproj" />
   </ItemGroup>
 
 </Project>

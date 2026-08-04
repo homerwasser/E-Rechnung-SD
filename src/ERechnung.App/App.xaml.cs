@@ -10,6 +10,7 @@ using ERechnung.Data.Pdf;
 using ERechnung.Data.Repositories;
 using ERechnung.PDF;
 using ERechnung.PDF.Generators;
+using ERechnung.XML.Generators;
 
 namespace ERechnung.App;
 
@@ -43,6 +44,7 @@ public partial class App : Application
                 rechnungRepository,
                 new QuestPdfRechnungsPdfGenerator(),
                 pdfAblage);
+            var ublGenerator = new UblGenerator();
             var dateiOeffner = new WindowsDateiOeffner();
             var emailEntwurfComposer = new EmailEntwurfComposer();
             var emailEntwurfService = new WindowsEmailEntwurfService();
