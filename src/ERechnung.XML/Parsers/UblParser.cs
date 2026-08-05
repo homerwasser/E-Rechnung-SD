@@ -114,7 +114,7 @@ public sealed class UblParser : IUblParser
 
     private static RechnungsAbsenderSnapshot ParsTradePartyAsAbsender(XElement party)
     {
-        var contact = party.Element(Ram + "Contact");
+        var communication = party.Element(Ram + "SpecifiedCommunication");
 
         return new RechnungsAbsenderSnapshot
         {
@@ -123,22 +123,22 @@ public sealed class UblParser : IUblParser
             PLZ = LiesAdressePostleitzahl(party),
             Ort = LiesAdresseOrt(party),
             Land = LiesAdresseLand(party),
-            Ansprechpartner = contact is not null
-                ? LesElementWert(contact, Cbc + "PersonName")
+            Ansprechpartner = communication is not null
+                ? LesElementWert(communication, Cbc + "PersonName")
                 : string.Empty,
-            Telefon = contact is not null
-                ? LesElementWert(contact, Cbc + "TelephoneUniversalCommunication", Cbc + "CompleteNumber")
+            Telefon = communication is not null
+                ? LiesTelefon(communication)
                 : string.Empty,
-            Email = contact is not null
-                ? LesElementWert(contact, Cbc + "EmailURIUniversalCommunication", Cbc + "URIIdentifier")
+            Email = communication is not null
+                ? LiesEmail(communication)
                 : string.Empty,
-            UstIdNr = LesVatId(party),
+            UstIdNr = LiesVatId(party),
         };
     }
 
     private static RechnungsEmpfaengerSnapshot ParsTradePartyAsEmpfaenger(XElement party)
     {
-        var contact = party.Element(Ram + "Contact");
+        var communication = party.Element(Ram + "SpecifiedCommunication");
 
         return new RechnungsEmpfaengerSnapshot
         {
@@ -147,13 +147,13 @@ public sealed class UblParser : IUblParser
             PLZ = LiesAdressePostleitzahl(party),
             Ort = LiesAdresseOrt(party),
             Land = LiesAdresseLand(party),
-            Ansprechpartner = contact is not null
-                ? LesElementWert(contact, Cbc + "PersonName")
+            Ansprechpartner = communication is not null
+                ? LesElementWert(communication, Cbc + "PersonName")
                 : string.Empty,
-            Email = contact is not null
-                ? LesElementWert(contact, Cbc + "EmailURIUniversalCommunication", Cbc + "URIIdentifier")
+            Email = communication is not null
+                ? LiesEmail(communication)
                 : string.Empty,
-            UstIdNr = LesVatId(party),
+            UstIdNr = LiesVatId(party),
         };
     }
 
@@ -248,17 +248,6 @@ public sealed class UblParser : IUblParser
 
         var itemPrice = pricing.Element(Ram + "ItemPriceAmount");
         return itemPrice is not null ? LesDecimal(itemPrice) : null;
-    }
-
-    private static decimal? ParsGesamtpreis(XElement lineItem)
-    {
-        var pricing = lineItem.Element(Ram + "SpecifiedLineTradePricing");
-        if (pricing is null)
-        {
-            return null;
-        }
-
-        return LesDecimal(pricing, Cbc + "LineExtensionAmount");
     }
 
     private static decimal? ParsSteuersatz(XElement lineItem)
@@ -372,7 +361,7 @@ public sealed class UblParser : IUblParser
         return country?.Value ?? string.Empty;
     }
 
-    private static string LesVatId(XElement party)
+    private static string LiesVatId(XElement party)
     {
         var reg = party.Element(Ram + "SpecifiedTaxRegistration");
         if (reg is null)
@@ -393,6 +382,52 @@ public sealed class UblParser : IUblParser
         }
 
         return id.Value;
+    }
+
+    private static string LiesTelefon(XElement communication)
+    {
+        // Der Generator schreibt <cbc:TelephoneNumber> direkt unter SpecifiedCommunication
+        var telephoneNumber = communication.Element(Cbc + "TelephoneNumber");
+        if (telephoneNumber is not null)
+        {
+            return telephoneNumber.Value;
+        }
+
+        // Fallback: CII-Norm <cbc:TelephoneUniversalCommunication>/<cbc:CompleteNumber>
+        var universalCommunication = communication.Element(Ram + "TelephoneUniversalCommunication");
+        if (universalCommunication is not null)
+        {
+            return LesElementWert(universalCommunication, Cbc + "CompleteNumber");
+        }
+
+        return string.Empty;
+    }
+
+    private static string LiesEmail(XElement communication)
+    {
+        // Der Generator schreibt <ram:URIUniversalCommunication>/<cbc:URIID schemeID="EM"> unter SpecifiedCommunication
+        var uriComm = communication.Element(Ram + "URIUniversalCommunication");
+        if (uriComm is not null)
+        {
+            var uriId = uriComm.Element(Cbc + "URIID");
+            if (uriId is not null)
+            {
+                var scheme = uriId.Attribute("schemeID")?.Value;
+                if (scheme == "EM")
+                {
+                    return uriId.Value;
+                }
+            }
+        }
+
+        // Fallback: CII-Norm <ram:EmailURIUniversalCommunication>/<cbc:URIIdentifier>
+        var emailComm = communication.Element(Ram + "EmailURIUniversalCommunication");
+        if (emailComm is not null)
+        {
+            return LesElementWert(emailComm, Cbc + "URIIdentifier");
+        }
+
+        return string.Empty;
     }
 
     private static decimal? LesDecimal(XElement element)

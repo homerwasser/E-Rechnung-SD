@@ -202,6 +202,31 @@ public sealed class UblParserTests
     }
 
     [Fact]
+    public void Parse_RoundTrip_PreservesSellerContactInfo()
+    {
+        var rechnung = CreateInvoice();
+        var xml = _generator.Generate(rechnung);
+        var parsed = _parser.Parse(xml);
+
+        var absender = parsed.AbsenderSnapshot!;
+        Assert.Equal(rechnung.AbsenderSnapshot!.Ansprechpartner, absender.Ansprechpartner);
+        Assert.Equal(rechnung.AbsenderSnapshot.Telefon, absender.Telefon);
+        Assert.Equal(rechnung.AbsenderSnapshot.Email, absender.Email);
+    }
+
+    [Fact]
+    public void Parse_RoundTrip_PreservesBuyerContactInfo()
+    {
+        var rechnung = CreateInvoice();
+        var xml = _generator.Generate(rechnung);
+        var parsed = _parser.Parse(xml);
+
+        var empfaenger = parsed.EmpfaengerSnapshot!;
+        Assert.Equal(rechnung.EmpfaengerSnapshot!.Ansprechpartner, empfaenger.Ansprechpartner);
+        Assert.Equal(rechnung.EmpfaengerSnapshot.Email, empfaenger.Email);
+    }
+
+    [Fact]
     public void Parse_RoundTrip_PreservesPostalAddress()
     {
         var rechnung = CreateInvoice();
