@@ -322,6 +322,69 @@ public sealed class UblParserTests
     }
 
     [Fact]
+    public void Parse_MixedTaxRates_PreservesPerLineTaxRates()
+    {
+        var rechnung = CreateInvoice();
+        rechnung.Positionen.Add(new RechnungsPosition
+        {
+            Reihenfolge = 2,
+            Beschreibung = "Niedrige Steuer",
+            Menge = 1m,
+            EinzelpreisNetto = 80m,
+            Steuersatz = 7m,
+            Einheit = "ST",
+        });
+        RechnungCalculator.Berechnen(rechnung);
+
+        var xml = _generator.Generate(rechnung);
+        var parsed = _parser.Parse(xml);
+
+        Assert.Equal(2, parsed.Positionen.Count);
+        Assert.Equal(19m, parsed.Positionen[0].Steuersatz);
+        Assert.Equal(7m, parsed.Positionen[1].Steuersatz);
+    }
+
+    [Fact]
+    public void Parse_ZeroTaxRate_PreservesTaxRate()
+    {
+        var rechnung = CreateInvoice();
+        rechnung.Positionen[0].Steuersatz = 0m;
+        RechnungCalculator.Berechnen(rechnung);
+
+        var xml = _generator.Generate(rechnung);
+        var parsed = _parser.Parse(xml);
+
+        Assert.Equal(0m, parsed.Positionen[0].Steuersatz);
+        Assert.Equal(0m, parsed.UmsatzsteuerBetrag);
+        Assert.Equal(rechnung.GesamtbetragNetto, parsed.GesamtbetragBrutto);
+    }
+
+    [Fact]
+    public void Parse_EmptyComment_YieldsEmptyString()
+    {
+        var rechnung = CreateInvoice();
+        rechnung.Bemerkung = string.Empty;
+
+        var xml = _generator.Generate(rechnung);
+        var parsed = _parser.Parse(xml);
+
+        Assert.Equal(string.Empty, parsed.Bemerkung);
+    }
+
+    [Fact]
+    public void Parse_NonEurRoundTrip_PreservesCurrency()
+    {
+        var rechnung = CreateInvoice();
+        rechnung.Waehrung = "CHF";
+        RechnungCalculator.Berechnen(rechnung);
+
+        var xml = _generator.Generate(rechnung);
+        var parsed = _parser.Parse(xml);
+
+        Assert.Equal("CHF", parsed.Waehrung);
+    }
+
+    [Fact]
     public void Parse_FullRoundTrip_ProducesValidInvoiceForSaving()
     {
         var rechnung = CreateInvoice();

@@ -10,7 +10,6 @@ namespace ERechnung.XML.Parsers;
 public sealed class UblParser : IUblParser
 {
     private static readonly XNamespace Rsm = "urn:oasis:names:specification:ubl:schema:xsd:CrossIndustryInvoice-1";
-    private static readonly XNamespace Qdt = "urn:oasis:names:specification:ubl:schema:xsd:QualifiedDataTypes-2";
     private static readonly XNamespace Ram = "urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2";
     private static readonly XNamespace Cbc = "urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2";
 

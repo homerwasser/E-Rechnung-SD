@@ -252,11 +252,11 @@ public sealed class UblGenerator : IUblGenerator
     {
         return r.Positionen
             .OfType<RechnungsPosition>()
-            .Select(LineItem)
+            .Select(p => LineItem(p, r.Waehrung))
             .ToArray();
     }
 
-    private static XElement LineItem(RechnungsPosition p)
+    private static XElement LineItem(RechnungsPosition p, string waehrung)
     {
         return new XElement(Ram + "IncludedSupplyChainTradeLineItem",
             new XElement(Cbc + "AssociatedDocumentLineReference",
@@ -269,18 +269,18 @@ public sealed class UblGenerator : IUblGenerator
                     FormatDecimal(p.Menge))),
             new XElement(Ram + "SpecifiedLineTradePricing",
                 new XElement(Ram + "ItemPriceAmount",
-                    new XAttribute("currencyID", "EUR"),
+                    new XAttribute("currencyID", waehrung),
                     FormatDecimal(p.EinzelpreisNetto)),
                 new XElement(Cbc + "LineExtensionAmount",
-                    new XAttribute("currencyID", "EUR"),
+                    new XAttribute("currencyID", waehrung),
                     FormatDecimal(p.GesamtpreisNetto))),
             new XElement(Ram + "SpecifiedLineTradeTax",
                 new XElement(Cbc + "CalculatedAmount",
-                    new XAttribute("currencyID", "EUR"),
+                    new XAttribute("currencyID", waehrung),
                     FormatDecimal(decimal.Round(p.GesamtpreisNetto * p.Steuersatz / 100m, 2))),
                 new XElement(Cbc + "TypeCode", "VAT"),
                 new XElement(Cbc + "BasisAmount",
-                    new XAttribute("currencyID", "EUR"),
+                    new XAttribute("currencyID", waehrung),
                     FormatDecimal(p.GesamtpreisNetto)),
                 new XElement(Ram + "TaxCategory",
                     new XElement(Cbc + "ID", LineVatCategoryCode(p)),

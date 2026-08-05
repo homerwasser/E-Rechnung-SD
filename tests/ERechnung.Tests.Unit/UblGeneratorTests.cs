@@ -369,6 +369,39 @@ public sealed class UblGeneratorTests
     }
 
     [Fact]
+    public void Generate_NonEurCurrency_PropagatesToLineItems()
+    {
+        var rechnung = CreateInvoice();
+        rechnung.Waehrung = "GBP";
+        RechnungCalculator.Berechnen(rechnung);
+        var xml = _generator.Generate(rechnung);
+        var doc = XDocument.Parse(xml);
+
+        // Header level
+        var settlement = doc.Root!.Element(Rsm + "SupplyChainTradeTransaction")!
+            .Element(Ram + "ApplicableHeaderTradeSettlement")!;
+        Assert.Equal("GBP", settlement.Element(Cbc + "InvoiceCurrencyCode")!.Value);
+
+        // Line items
+        var lineItems = doc.Root!
+            .Element(Rsm + "SupplyChainTradeTransaction")!
+            .Elements(Ram + "IncludedSupplyChainTradeLineItem");
+        foreach (var lineItem in lineItems)
+        {
+            var pricing = lineItem.Element(Ram + "SpecifiedLineTradePricing")!;
+            var itemPrice = pricing.Element(Ram + "ItemPriceAmount")!;
+            Assert.Equal("GBP", itemPrice.Attribute("currencyID")!.Value);
+
+            var lineExt = pricing.Element(Cbc + "LineExtensionAmount")!;
+            Assert.Equal("GBP", lineExt.Attribute("currencyID")!.Value);
+
+            var lineTax = lineItem.Element(Ram + "SpecifiedLineTradeTax")!;
+            Assert.Equal("GBP", lineTax.Element(Cbc + "CalculatedAmount")!.Attribute("currencyID")!.Value);
+            Assert.Equal("GBP", lineTax.Element(Cbc + "BasisAmount")!.Attribute("currencyID")!.Value);
+        }
+    }
+
+    [Fact]
     public void Generate_PostalAddress_ContainsCityAndPostalCode()
     {
         var xml = _generator.Generate(CreateInvoice());
