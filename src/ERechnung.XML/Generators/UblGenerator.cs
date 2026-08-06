@@ -176,7 +176,7 @@ public sealed class UblGenerator : IUblGenerator
                 children.Insert(1,
                     new XElement(Ram + "ApplicableTradeSettlementPaymentMeans",
                         new XElement(Cbc + "InstructionID", "1"),
-                        new XElement(Cbc + "PaymentMeansCode", new XAttribute("name", "Credit transfer"), "58"),
+                        new XElement(Cbc + "PaymentMeansCode", "%"),
                         new XElement(Ram + "PayeeSpecifiedCreditorFinancialAccount",
                             new XElement(Cbc + "IBANID", r.AbsenderSnapshot.IBAN))));
             }
@@ -233,7 +233,7 @@ public sealed class UblGenerator : IUblGenerator
     {
         if (r.Faeligkeitsdatum.HasValue)
             return new XElement(Ram + "SpecifiedTradePaymentTerms",
-                new XElement(Cbc + "DescriptionDueDate",
+                new XElement(Cbc + "DueDateDateTime",
                     new XAttribute("format", "102"),
                     r.Faeligkeitsdatum.Value.ToString("yyyyMMdd")));
 
@@ -373,6 +373,9 @@ public sealed class UblGenerator : IUblGenerator
     private static XElement SpecifiedTaxRegistration(string ustId)
     {
         return new XElement(Ram + "SpecifiedTaxRegistration",
-            new XElement(Cbc + "ID", new XAttribute("schemeID", "VA"), ustId));
+            new XElement(Cbc + "ID",
+                new XAttribute("schemeID", "VA"),
+                new XAttribute("schemeAgencyID", "EU"),
+                ustId));
     }
 }

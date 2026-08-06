@@ -167,7 +167,7 @@ public sealed class UblParser : IUblParser
         var paymentTerms = settlement.Element(Ram + "SpecifiedTradePaymentTerms");
         if (paymentTerms is not null)
         {
-            var dueDate = paymentTerms.Element(Cbc + "DescriptionDueDate");
+            var dueDate = paymentTerms.Element(Cbc + "DueDateDateTime");
             if (dueDate is not null)
             {
                 invoice.Faeligkeitsdatum = dueDate.Value.ToDateTimeYyyyMMdd();

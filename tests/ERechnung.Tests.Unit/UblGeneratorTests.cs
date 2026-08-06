@@ -352,7 +352,7 @@ public sealed class UblGeneratorTests
             .Element(Ram + "ApplicableHeaderTradeSettlement")!;
 
         var terms = settlement.Element(Ram + "SpecifiedTradePaymentTerms")!;
-        var dueDate = terms.Element(Cbc + "DescriptionDueDate")!;
+        var dueDate = terms.Element(Cbc + "DueDateDateTime")!;
         Assert.Equal("20260817", dueDate.Value);
     }
 
