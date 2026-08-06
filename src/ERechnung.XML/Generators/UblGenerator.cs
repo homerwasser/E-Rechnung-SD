@@ -115,22 +115,36 @@ public sealed class UblGenerator : IUblGenerator
 
     private static XElement GenerateSellerParty(RechnungsAbsenderSnapshot s)
     {
-        return new XElement(Ram + "SellerTradeParty",
+        var children = new List<XElement>
+        {
             new XElement(Cbc + "Name", s.Name),
             PostalAddress(s.Strasse, s.PLZ, s.Ort, s.Land),
-            CommunicationContact(s.Ansprechpartner, s.Telefon, s.Email),
-            new XElement(Ram + "SpecifiedTaxRegistration",
-                new XElement(Cbc + "ID", new XAttribute("schemeID", "VA"), s.UstIdNr)));
+            CommunicationContact(s.Ansprechpartner, s.Telefon, s.Email)
+        };
+
+        if (!string.IsNullOrWhiteSpace(s.UstIdNr))
+        {
+            children.Add(SpecifiedTaxRegistration(s.UstIdNr));
+        }
+
+        return new XElement(Ram + "SellerTradeParty", children);
     }
 
     private static XElement GenerateBuyerParty(RechnungsEmpfaengerSnapshot s)
     {
-        return new XElement(Ram + "BuyerTradeParty",
+        var children = new List<XElement>
+        {
             new XElement(Cbc + "Name", s.Name),
             PostalAddress(s.Strasse, s.PLZ, s.Ort, s.Land),
-            CommunicationContact(s.Ansprechpartner, string.Empty, s.Email),
-            new XElement(Ram + "SpecifiedTaxRegistration",
-                new XElement(Cbc + "ID", new XAttribute("schemeID", "VA"), s.UstIdNr)));
+            CommunicationContact(s.Ansprechpartner, string.Empty, s.Email)
+        };
+
+        if (!string.IsNullOrWhiteSpace(s.UstIdNr))
+        {
+            children.Add(SpecifiedTaxRegistration(s.UstIdNr));
+        }
+
+        return new XElement(Ram + "BuyerTradeParty", children);
     }
 
     // ── Settlement ────────────────────────────────────────────────────────
@@ -148,13 +162,24 @@ public sealed class UblGenerator : IUblGenerator
 
         if (r.AbsenderSnapshot is not null)
         {
-            children.Insert(0,
-                new XElement(Ram + "PayeeTradeParty",
-                    new XElement(Cbc + "Name", r.AbsenderSnapshot.Name),
-                    new XElement(Ram + "SpecifiedTaxRegistration",
-                        new XElement(Cbc + "ID",
-                            new XAttribute("schemeID", "VA"),
-                            r.AbsenderSnapshot.UstIdNr))));
+            var payeeChildren = new List<XElement> { new XElement(Cbc + "Name", r.AbsenderSnapshot.Name) };
+            if (!string.IsNullOrWhiteSpace(r.AbsenderSnapshot.UstIdNr))
+            {
+                payeeChildren.Add(SpecifiedTaxRegistration(r.AbsenderSnapshot.UstIdNr));
+            }
+
+            children.Insert(0, new XElement(Ram + "PayeeTradeParty", payeeChildren));
+
+            // SEPA Zahlungsart hinzufügen (wenn IBAN vorhanden)
+            if (!string.IsNullOrWhiteSpace(r.AbsenderSnapshot.IBAN))
+            {
+                children.Insert(1,
+                    new XElement(Ram + "ApplicableTradeSettlementPaymentMeans",
+                        new XElement(Cbc + "InstructionID", "1"),
+                        new XElement(Cbc + "PaymentMeansCode", new XAttribute("name", "Credit transfer"), "58"),
+                        new XElement(Ram + "PayeeSpecifiedCreditorFinancialAccount",
+                            new XElement(Cbc + "IBANID", r.AbsenderSnapshot.IBAN))));
+            }
         }
 
         return children.ToArray();
@@ -304,7 +329,6 @@ public sealed class UblGenerator : IUblGenerator
             new XElement(Cbc + "StreetName", strasse),
             new XElement(Cbc + "PostcodeCode", plz),
             new XElement(Cbc + "CityName", ort),
-            new XElement(Cbc + "CitySubdivisionName", ort),
             new XElement(Ram + "CountryID", land),
             new XElement(Ram + "CountryName", CountryName(land)));
     }
@@ -345,4 +369,10 @@ public sealed class UblGenerator : IUblGenerator
         "IE" => "Irland",
         _ => isoCode,
     };
+
+    private static XElement SpecifiedTaxRegistration(string ustId)
+    {
+        return new XElement(Ram + "SpecifiedTaxRegistration",
+            new XElement(Cbc + "ID", new XAttribute("schemeID", "VA"), ustId));
+    }
 }
